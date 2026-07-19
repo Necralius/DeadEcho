@@ -3,7 +3,11 @@
     "rootNamespace": "Project.Infrastructure",
     "references": [
         "Project.Core",
-        "Unity.InputSystem"
+        "Project.Audio",
+        "Project.UI",
+        "Unity.InputSystem",
+        "VContainer",
+        "VContainer.Unity"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
