@@ -2,7 +2,8 @@
     "name": "Project.Infrastructure",
     "rootNamespace": "Project.Infrastructure",
     "references": [
-        "Project.Core"
+        "Project.Core",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
