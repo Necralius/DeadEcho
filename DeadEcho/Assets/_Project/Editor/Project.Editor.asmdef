@@ -1,0 +1,24 @@
+{
+    "name": "Project.Editor",
+    "rootNamespace": "Project.Editor",
+    "references": [
+        "Project.Core",
+        "Project.Gameplay",
+        "Project.AI",
+        "Project.Audio",
+        "Project.UI",
+        "Project.Narrative",
+        "Project.Infrastructure"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
