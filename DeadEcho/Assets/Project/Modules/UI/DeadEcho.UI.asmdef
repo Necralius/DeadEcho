@@ -1,3 +1,16 @@
 {
-	"name": "DeadEcho.UI"
+    "name": "DeadEcho.UI",
+    "rootNamespace": "",
+    "references": [
+        "GUID:1ef1a9092f85a6b4ca674e179fa37021"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
