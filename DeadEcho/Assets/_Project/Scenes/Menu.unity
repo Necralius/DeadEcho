@@ -164,9 +164,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Project.Infrastructure::Project.Infrastructure.DependencyInjection.ProjectLifetimeScope
   parentReference:
-    TypeName: Project.Infrastructure.DependencyInjection.SceneLifetimeScope
+    TypeName: 
   autoRun: 1
-  autoInjectGameObjects: []
+  autoInjectGameObjects:
+  - {fileID: 14808686}
   inputActions: {fileID: -944628639613478452, guid: 38bcf6b3131b4258a30e83e8f87f33e5, type: 3}
 --- !u!1 &117145123
 GameObject:
