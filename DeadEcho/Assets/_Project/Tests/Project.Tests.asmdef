@@ -2,7 +2,9 @@
     "name": "Project.Tests",
     "rootNamespace": "Project.Tests",
     "references": [
-        "Project.Core"
+        "Project.Core",
+        "Project.UI",
+        "Project.Infrastructure"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
