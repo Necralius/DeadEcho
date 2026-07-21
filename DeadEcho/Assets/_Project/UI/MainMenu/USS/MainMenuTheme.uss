@@ -69,3 +69,61 @@
     flex-direction: row;
     justify-content: flex-end;
 }
+
+.controls-scroll {
+    flex-grow: 1;
+    min-height: 0;
+    margin-bottom: 10px;
+}
+
+.controls-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+
+.binding-row {
+    width: 48%;
+    min-width: 300px;
+    min-height: 112px;
+    margin-right: 12px;
+    margin-bottom: 12px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    flex-direction: column;
+    justify-content: space-between;
+    background-color: rgba(15, 18, 19, 0.92);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(64, 74, 70);
+    border-right-color: rgb(64, 74, 70);
+    border-top-color: rgb(64, 74, 70);
+    border-bottom-color: rgb(64, 74, 70);
+}
+
+.binding-text {
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.binding-action {
+    color: rgb(236, 238, 229);
+    -unity-font-style: bold;
+    white-space: normal;
+    margin-bottom: 6px;
+}
+
+.binding-path {
+    color: rgb(174, 181, 174);
+    white-space: normal;
+    margin-bottom: 10px;
+}
+
+.binding-rebind {
+    min-width: 128px;
+    align-self: flex-start;
+}

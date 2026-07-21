@@ -223,13 +223,30 @@ namespace Project.UI.MainMenu.Controllers
                 _content.Add(duplicate);
             }
 
+            var scroll = new ScrollView(ScrollViewMode.Vertical) { name = "controls-scroll" };
+            scroll.AddToClassList("controls-scroll");
+            var grid = new VisualElement { name = "controls-grid" };
+            grid.AddToClassList("controls-grid");
+            scroll.Add(grid);
+
             foreach (ControlBindingView binding in _controlsSettings.GetBindings())
             {
                 var row = new VisualElement();
                 row.AddToClassList("binding-row");
-                row.Add(new Label($"{binding.Group} / {binding.ActionName}") { name = "binding-action" });
-                row.Add(new Label(binding.DisplayPath) { name = "binding-path" });
+
+                var textGroup = new VisualElement();
+                textGroup.AddToClassList("binding-text");
+
+                var actionLabel = new Label($"{binding.Group} / {binding.ActionName}") { name = "binding-action" };
+                actionLabel.AddToClassList("binding-action");
+                var pathLabel = new Label(binding.DisplayPath) { name = "binding-path" };
+                pathLabel.AddToClassList("binding-path");
+                textGroup.Add(actionLabel);
+                textGroup.Add(pathLabel);
+                row.Add(textGroup);
+
                 Button rebind = CreateButton("Rebind", "button-secondary");
+                rebind.AddToClassList("binding-rebind");
                 rebind.clicked += async () =>
                 {
                     rebind.text = "Press a key or button";
@@ -238,8 +255,10 @@ namespace Project.UI.MainMenu.Controllers
                     ShowTab(SettingsTab.Controls);
                 };
                 row.Add(rebind);
-                _content.Add(row);
+                grid.Add(row);
             }
+
+            _content.Add(scroll);
 
             Button defaults = CreateButton("Restore Defaults", "button-secondary");
             defaults.clicked += () =>
