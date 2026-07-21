@@ -38,7 +38,10 @@ namespace Project.Infrastructure.DependencyInjection
             builder.Register<UnityInputService>(Lifetime.Singleton).As<IInputService>();
             builder.Register<PlaceholderAudioService>(Lifetime.Singleton).As<IAudioService>();
             builder.Register<PlayerPrefsSettingsStorage>(Lifetime.Singleton).As<ISettingsStorage>();
-            builder.Register<UnityAudioSettingsService>(Lifetime.Singleton).As<IAudioSettingsService>();
+            builder.Register(
+                    resolver => new UnityAudioSettingsService(resolver.Resolve<ISettingsStorage>()),
+                    Lifetime.Singleton)
+                .As<IAudioSettingsService>();
             builder.Register<UnityGraphicsSettingsService>(Lifetime.Singleton).As<IGraphicsSettingsService>();
             builder.Register<GraphicsRevertService>(Lifetime.Singleton).As<IGraphicsRevertService>();
             builder.Register<UnityControlsSettingsService>(Lifetime.Singleton).As<IControlsSettingsService>();
