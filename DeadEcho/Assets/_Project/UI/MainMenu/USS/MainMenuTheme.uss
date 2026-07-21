@@ -1,0 +1,64 @@
+.ui-screen {
+    flex-grow: 1;
+    padding-left: 48px;
+    padding-right: 48px;
+    padding-top: 40px;
+    padding-bottom: 40px;
+    background-color: rgba(8, 10, 12, 0.92);
+}
+
+.screen-title {
+    font-size: 42px;
+    color: rgb(232, 236, 232);
+    margin-bottom: 24px;
+}
+
+.screen-placeholder {
+    color: rgb(170, 178, 176);
+    margin-bottom: 16px;
+}
+
+.modal-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.55);
+}
+
+.modal-dialog {
+    width: 460px;
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    background-color: rgb(18, 21, 23);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(86, 96, 98);
+    border-right-color: rgb(86, 96, 98);
+    border-top-color: rgb(86, 96, 98);
+    border-bottom-color: rgb(86, 96, 98);
+}
+
+.modal-title {
+    font-size: 24px;
+    color: rgb(232, 236, 232);
+    margin-bottom: 12px;
+}
+
+.modal-message {
+    color: rgb(190, 198, 196);
+    white-space: normal;
+    margin-bottom: 20px;
+}
+
+.modal-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+}

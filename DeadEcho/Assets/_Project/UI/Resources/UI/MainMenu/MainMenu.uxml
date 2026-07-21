@@ -1,0 +1,21 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="main-menu-screen" class="ui-screen main-menu-screen">
+        <ui:VisualElement name="main-menu-atmosphere" class="main-menu-atmosphere" />
+        <ui:VisualElement name="main-menu-content" class="main-menu-content">
+            <ui:Label name="main-menu-title" text="Dead Echo" class="ui-title main-menu-title" />
+            <ui:Label name="main-menu-subtitle" text="A descent into the halls below silence." class="ui-subtitle main-menu-subtitle" />
+            <ui:VisualElement name="main-menu-actions" class="main-menu-actions">
+                <ui:Button name="new-game-button" text="New Game" class="button-primary menu-button" />
+                <ui:Button name="load-game-button" text="Load Game" class="button-secondary menu-button" />
+                <ui:Button name="settings-button" text="Settings" class="button-secondary menu-button" />
+                <ui:Button name="credits-button" text="Credits" class="button-secondary menu-button" />
+                <ui:Button name="extras-button" text="Extras" class="button-secondary menu-button" />
+                <ui:Button name="quit-button" text="Quit" class="button-danger menu-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="main-menu-footer" class="main-menu-footer">
+            <ui:Label name="copyright-label" text="Dead Echo Studio" class="footer-label" />
+            <ui:Label name="version-label" text="v0.0.0" class="footer-label" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

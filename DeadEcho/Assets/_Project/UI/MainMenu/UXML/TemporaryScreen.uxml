@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="temporary-screen" class="ui-screen">
+        <ui:Label name="screen-title" text="Temporary Screen" class="screen-title" />
+        <ui:Label name="screen-placeholder" text="Temporary screen" class="screen-placeholder" />
+        <ui:Button name="default-action" text="Continue" />
+    </ui:VisualElement>
+</ui:UXML>

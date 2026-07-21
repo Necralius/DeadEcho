@@ -1,0 +1,366 @@
+.screen-layer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.modal-layer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.interaction-blocker {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.01);
+}
+
+.ui-screen {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    min-width: 640px;
+    min-height: 360px;
+    padding-left: 72px;
+    padding-right: 72px;
+    padding-top: 56px;
+    padding-bottom: 40px;
+    background-color: rgb(7, 9, 11);
+}
+
+.main-menu-screen {
+    justify-content: center;
+    background-color: rgb(7, 9, 11);
+}
+
+.main-menu-atmosphere {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(54, 14, 18, 0.28);
+}
+
+.main-menu-content {
+    width: 420px;
+    max-width: 48%;
+}
+
+.ui-title {
+    color: rgb(234, 232, 220);
+    font-size: 68px;
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+}
+
+.ui-subtitle {
+    color: rgb(174, 181, 174);
+    font-size: 15px;
+    margin-bottom: 34px;
+    white-space: normal;
+}
+
+.main-menu-actions {
+    width: 280px;
+}
+
+.menu-button,
+.modal-button,
+.button-primary,
+.button-secondary,
+.button-danger {
+    min-height: 44px;
+    margin-bottom: 8px;
+    padding-left: 18px;
+    padding-right: 18px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+    font-size: 16px;
+    -unity-text-align: middle-left;
+    color: rgb(229, 232, 224);
+    transition-duration: 120ms;
+}
+
+.button-primary {
+    background-color: rgb(101, 22, 29);
+    border-left-color: rgb(176, 58, 63);
+    border-right-color: rgb(176, 58, 63);
+    border-top-color: rgb(176, 58, 63);
+    border-bottom-color: rgb(176, 58, 63);
+}
+
+.button-secondary {
+    background-color: rgba(22, 26, 27, 0.92);
+    border-left-color: rgb(71, 82, 78);
+    border-right-color: rgb(71, 82, 78);
+    border-top-color: rgb(71, 82, 78);
+    border-bottom-color: rgb(71, 82, 78);
+}
+
+.button-danger {
+    background-color: rgba(44, 20, 22, 0.94);
+    border-left-color: rgb(120, 45, 49);
+    border-right-color: rgb(120, 45, 49);
+    border-top-color: rgb(120, 45, 49);
+    border-bottom-color: rgb(120, 45, 49);
+}
+
+.button-disabled {
+    color: rgb(143, 148, 143);
+    background-color: rgba(20, 22, 22, 0.65);
+}
+
+.menu-button:hover,
+.menu-button:focus,
+.modal-button:hover,
+.modal-button:focus {
+    translate: 6px 0;
+    border-left-width: 4px;
+    color: rgb(255, 248, 226);
+}
+
+.main-menu-footer {
+    position: absolute;
+    left: 72px;
+    right: 72px;
+    bottom: 28px;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.footer-label {
+    color: rgb(122, 130, 124);
+    font-size: 12px;
+}
+
+.screen-title {
+    font-size: 42px;
+    color: rgb(232, 236, 232);
+    margin-bottom: 24px;
+}
+
+.screen-placeholder {
+    color: rgb(170, 178, 176);
+    margin-bottom: 16px;
+}
+
+.ui-panel {
+    padding-left: 18px;
+    padding-right: 18px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    background-color: rgba(15, 18, 19, 0.92);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(64, 74, 70);
+    border-right-color: rgb(64, 74, 70);
+    border-top-color: rgb(64, 74, 70);
+    border-bottom-color: rgb(64, 74, 70);
+}
+
+.settings-screen,
+.menu-list-screen {
+    background-color: rgb(7, 9, 11);
+}
+
+.settings-layout {
+    flex-direction: row;
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.settings-tabs {
+    width: 220px;
+    margin-right: 28px;
+}
+
+.settings-tab {
+    width: 200px;
+}
+
+.settings-content {
+    flex-grow: 1;
+    min-height: 0;
+    padding-left: 22px;
+    padding-right: 22px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    background-color: rgba(15, 18, 19, 0.92);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(64, 74, 70);
+    border-right-color: rgb(64, 74, 70);
+    border-top-color: rgb(64, 74, 70);
+    border-bottom-color: rgb(64, 74, 70);
+}
+
+.setting-row {
+    margin-bottom: 18px;
+}
+
+.setting-row Label,
+.settings-content Label,
+.credits-scroll Label,
+.save-row Label,
+.extras-grid Label {
+    color: rgb(220, 225, 218);
+    font-size: 15px;
+}
+
+.settings-dirty {
+    color: rgb(232, 184, 88);
+    margin-bottom: 12px;
+}
+
+.screen-actions {
+    flex-direction: row;
+    margin-top: 18px;
+}
+
+.screen-actions .menu-button {
+    margin-right: 10px;
+}
+
+.save-list,
+.credits-scroll {
+    flex-grow: 1;
+    min-height: 0;
+}
+
+.save-row,
+.binding-row {
+    margin-bottom: 12px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    background-color: rgba(15, 18, 19, 0.92);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(64, 74, 70);
+    border-right-color: rgb(64, 74, 70);
+    border-top-color: rgb(64, 74, 70);
+    border-bottom-color: rgb(64, 74, 70);
+}
+
+.binding-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.binding-row Label {
+    min-width: 180px;
+}
+
+.extras-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.extras-grid .ui-panel {
+    width: 220px;
+    min-height: 96px;
+    margin-right: 12px;
+    margin-bottom: 12px;
+}
+
+.modal-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.68);
+}
+
+.modal-dialog {
+    width: 480px;
+    max-width: 86%;
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-top: 22px;
+    padding-bottom: 20px;
+    background-color: rgb(17, 20, 21);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(115, 49, 52);
+    border-right-color: rgb(115, 49, 52);
+    border-top-color: rgb(115, 49, 52);
+    border-bottom-color: rgb(115, 49, 52);
+}
+
+.modal-warning .modal-dialog {
+    border-left-color: rgb(190, 139, 50);
+    border-right-color: rgb(190, 139, 50);
+    border-top-color: rgb(190, 139, 50);
+    border-bottom-color: rgb(190, 139, 50);
+}
+
+.modal-danger .modal-dialog {
+    border-left-color: rgb(176, 58, 63);
+    border-right-color: rgb(176, 58, 63);
+    border-top-color: rgb(176, 58, 63);
+    border-bottom-color: rgb(176, 58, 63);
+}
+
+.modal-title {
+    font-size: 24px;
+    color: rgb(238, 234, 221);
+    margin-bottom: 12px;
+}
+
+.modal-message {
+    color: rgb(190, 198, 196);
+    white-space: normal;
+    margin-bottom: 20px;
+}
+
+.modal-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+}
+
+.modal-button {
+    min-width: 120px;
+    margin-left: 8px;
+}
+
+.ui-slider,
+.ui-toggle,
+.ui-dropdown,
+.ui-tabs {
+    color: rgb(220, 225, 218);
+}
+
+.ui-tab-selected,
+.navigation-selected {
+    border-bottom-width: 2px;
+    border-bottom-color: rgb(176, 58, 63);
+}

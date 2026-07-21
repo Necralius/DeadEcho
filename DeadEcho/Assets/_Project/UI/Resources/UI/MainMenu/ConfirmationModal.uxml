@@ -1,0 +1,12 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="confirmation-modal" class="modal-overlay">
+        <ui:VisualElement name="confirmation-dialog" class="modal-dialog">
+            <ui:Label name="confirmation-title" class="modal-title" />
+            <ui:Label name="confirmation-message" class="modal-message" />
+            <ui:VisualElement name="confirmation-actions" class="modal-actions">
+                <ui:Button name="cancel-button" text="Cancel" class="button-secondary modal-button" />
+                <ui:Button name="confirm-button" text="Confirm" class="button-danger modal-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
