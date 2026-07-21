@@ -14,6 +14,14 @@
     bottom: 0;
 }
 
+.loading-layer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
 .interaction-blocker {
     position: absolute;
     left: 0;
@@ -486,4 +494,127 @@
 .navigation-selected {
     border-bottom-width: 2px;
     border-bottom-color: rgb(176, 58, 63);
+}
+
+.scene-loading-root {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(5, 6, 7);
+}
+
+.loading-background,
+.loading-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.loading-background {
+    background-color: rgb(8, 10, 12);
+}
+
+.loading-overlay {
+    background-color: rgba(48, 8, 12, 0.34);
+}
+
+.loading-content {
+    width: 520px;
+    max-width: 78%;
+    align-items: center;
+}
+
+.loading-title {
+    color: rgb(238, 234, 221);
+    font-size: 52px;
+    -unity-font-style: bold;
+    margin-bottom: 28px;
+}
+
+.loading-status-label {
+    color: rgb(212, 219, 211);
+    font-size: 16px;
+    margin-bottom: 12px;
+}
+
+.loading-progress-track {
+    width: 100%;
+    height: 12px;
+    background-color: rgb(18, 22, 23);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(70, 82, 78);
+    border-right-color: rgb(70, 82, 78);
+    border-top-color: rgb(70, 82, 78);
+    border-bottom-color: rgb(70, 82, 78);
+}
+
+.loading-progress-fill {
+    height: 100%;
+    width: 0%;
+    background-color: rgb(156, 39, 47);
+}
+
+.loading-progress-label {
+    color: rgb(170, 178, 176);
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+.loading-tip-label {
+    color: rgb(142, 151, 146);
+    font-size: 13px;
+    white-space: normal;
+    margin-top: 18px;
+    -unity-text-align: middle-center;
+}
+
+.loading-spinner {
+    color: rgb(176, 58, 63);
+    font-size: 22px;
+    margin-top: 18px;
+}
+
+.loading-error-panel {
+    width: 100%;
+    margin-top: 22px;
+    padding-left: 18px;
+    padding-right: 18px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    background-color: rgba(22, 12, 14, 0.94);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(176, 58, 63);
+    border-right-color: rgb(176, 58, 63);
+    border-top-color: rgb(176, 58, 63);
+    border-bottom-color: rgb(176, 58, 63);
+}
+
+.loading-error-title {
+    color: rgb(248, 230, 222);
+    font-size: 18px;
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+}
+
+.loading-error-message {
+    color: rgb(220, 225, 218);
+    white-space: normal;
+    margin-bottom: 12px;
+}
+
+.loading-error-actions {
+    flex-direction: row;
+    justify-content: flex-end;
 }
