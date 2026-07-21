@@ -10,27 +10,22 @@ namespace Project.UI.Navigation
         private readonly Dictionary<UiScreenId, Func<IUiScreenController>> _factories = new();
 
         public UiScreenCatalog(
-            IModalService modalService,
-            ISaveGameQuery saveGameQuery,
-            INewGameService newGameService,
-            IApplicationQuitService quitService,
-            IAudioSettingsService audioSettings,
-            IGraphicsSettingsService graphicsSettings,
-            IGraphicsRevertService graphicsRevertService,
-            IControlsSettingsService controlsSettings,
-            ILoadGameService loadGameService,
-            IDeleteSaveService deleteSaveService,
-            ICreditsContentProvider creditsContentProvider)
+            Func<MainMenuScreenController> mainMenuFactory,
+            Func<LoadGameScreenController> loadGameFactory,
+            Func<SettingsScreenController> settingsFactory,
+            Func<CreditsScreenController> creditsFactory,
+            Func<ExtrasScreenController> extrasFactory,
+            Func<UiScreenId, string, TemporaryMenuScreenController> temporaryFactory)
         {
-            Register(UiScreenId.MainMenu, () => new MainMenuScreenController(modalService, saveGameQuery, newGameService, quitService));
-            Register(UiScreenId.NewGame, () => new TemporaryMenuScreenController(UiScreenId.NewGame, "New Game"));
-            Register(UiScreenId.LoadGame, () => new LoadGameScreenController(saveGameQuery, loadGameService, deleteSaveService, modalService));
-            Register(UiScreenId.Settings, () => new SettingsScreenController(audioSettings, graphicsSettings, graphicsRevertService, controlsSettings));
-            Register(UiScreenId.Audio, () => new TemporaryMenuScreenController(UiScreenId.Audio, "Audio"));
-            Register(UiScreenId.Graphics, () => new TemporaryMenuScreenController(UiScreenId.Graphics, "Graphics"));
-            Register(UiScreenId.Controls, () => new TemporaryMenuScreenController(UiScreenId.Controls, "Controls"));
-            Register(UiScreenId.Credits, () => new CreditsScreenController(creditsContentProvider));
-            Register(UiScreenId.Extras, () => new ExtrasScreenController());
+            Register(UiScreenId.MainMenu, mainMenuFactory);
+            Register(UiScreenId.NewGame, () => temporaryFactory(UiScreenId.NewGame, "New Game"));
+            Register(UiScreenId.LoadGame, loadGameFactory);
+            Register(UiScreenId.Settings, settingsFactory);
+            Register(UiScreenId.Audio, () => temporaryFactory(UiScreenId.Audio, "Audio"));
+            Register(UiScreenId.Graphics, () => temporaryFactory(UiScreenId.Graphics, "Graphics"));
+            Register(UiScreenId.Controls, () => temporaryFactory(UiScreenId.Controls, "Controls"));
+            Register(UiScreenId.Credits, creditsFactory);
+            Register(UiScreenId.Extras, extrasFactory);
         }
 
         public void Register(UiScreenId screenId, Func<IUiScreenController> factory)

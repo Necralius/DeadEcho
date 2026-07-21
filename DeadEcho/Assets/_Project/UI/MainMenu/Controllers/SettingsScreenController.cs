@@ -68,10 +68,10 @@ namespace Project.UI.MainMenu.Controllers
             Root.Add(footer);
 
             DefaultFocus = _audioTab;
-            _audioTab.clicked += () => ShowTab(SettingsTab.Audio);
-            _graphicsTab.clicked += () => ShowTab(SettingsTab.Graphics);
-            _controlsTab.clicked += () => ShowTab(SettingsTab.Controls);
-            _backButton.clicked += () => BackRequested?.Invoke();
+            _audioTab.clicked += OnAudioTabClicked;
+            _graphicsTab.clicked += OnGraphicsTabClicked;
+            _controlsTab.clicked += OnControlsTabClicked;
+            _backButton.clicked += OnBackClicked;
         }
 
         public event Action<UiScreenId> ShowRequested { add { } remove { } }
@@ -94,8 +94,20 @@ namespace Project.UI.MainMenu.Controllers
 
         public void Dispose()
         {
+            _audioTab.clicked -= OnAudioTabClicked;
+            _graphicsTab.clicked -= OnGraphicsTabClicked;
+            _controlsTab.clicked -= OnControlsTabClicked;
+            _backButton.clicked -= OnBackClicked;
             Close();
         }
+
+        private void OnAudioTabClicked() => ShowTab(SettingsTab.Audio);
+
+        private void OnGraphicsTabClicked() => ShowTab(SettingsTab.Graphics);
+
+        private void OnControlsTabClicked() => ShowTab(SettingsTab.Controls);
+
+        private void OnBackClicked() => BackRequested?.Invoke();
 
         private void ShowTab(SettingsTab tab)
         {

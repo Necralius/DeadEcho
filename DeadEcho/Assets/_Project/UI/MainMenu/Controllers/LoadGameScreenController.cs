@@ -31,7 +31,7 @@ namespace Project.UI.MainMenu.Controllers
             _list = new VisualElement { name = "save-list" };
             _list.AddToClassList("save-list");
             Root.Add(_list);
-            _backButton = new Button(() => BackRequested?.Invoke()) { text = "Back" };
+            _backButton = new Button(OnBackClicked) { text = "Back" };
             _backButton.AddToClassList("button-secondary");
             _backButton.AddToClassList("menu-button");
             Root.Add(_backButton);
@@ -52,11 +52,17 @@ namespace Project.UI.MainMenu.Controllers
         }
 
         public void Close() => Root.RemoveFromHierarchy();
-        public void Dispose() => Close();
+
+        public void Dispose()
+        {
+            _backButton.clicked -= OnBackClicked;
+            Close();
+        }
 
         private void Refresh()
         {
             _list.Clear();
+            DefaultFocus = _backButton;
             var saves = _saveGameQuery.GetAvailableSaves();
             if (saves.Count == 0)
             {
@@ -68,10 +74,14 @@ namespace Project.UI.MainMenu.Controllers
             }
 
             foreach (SaveGameSummary save in saves)
-                AddSaveRow(save);
+            {
+                Button loadButton = AddSaveRow(save);
+                if (save.IsValid && DefaultFocus == _backButton)
+                    DefaultFocus = loadButton;
+            }
         }
 
-        private void AddSaveRow(SaveGameSummary save)
+        private Button AddSaveRow(SaveGameSummary save)
         {
             var row = new VisualElement();
             row.AddToClassList("save-row");
@@ -90,8 +100,10 @@ namespace Project.UI.MainMenu.Controllers
             row.Add(load);
             row.Add(delete);
             _list.Add(row);
-            DefaultFocus ??= load;
+            return load;
         }
+
+        private void OnBackClicked() => BackRequested?.Invoke();
 
         private async void RunOnce(Func<Task> operation)
         {

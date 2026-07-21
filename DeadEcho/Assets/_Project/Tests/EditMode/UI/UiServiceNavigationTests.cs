@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using NUnit.Framework;
 using Project.Core.Services;
+using Project.UI.MainMenu.Controllers;
 using Project.UI.Modals;
 using Project.UI.Navigation;
 using Project.UI.Runtime;
@@ -23,18 +24,7 @@ namespace Project.Tests.EditMode.UI
             _modalService = new ModalService(_root);
             _uiService = new UiService(
                 _root,
-                new UiScreenCatalog(
-                    _modalService,
-                    new EmptySaveGameQuery(),
-                    new RecordingNewGameService(),
-                    new RecordingQuitService(),
-                    new RecordingAudioSettingsService(),
-                    new RecordingGraphicsSettingsService(),
-                    new ImmediateGraphicsRevertService(),
-                    new RecordingControlsSettingsService(),
-                    new RecordingLoadGameService(),
-                    new RecordingDeleteSaveService(),
-                    new RecordingCreditsProvider()),
+                CreateCatalog(),
                 new UiNavigationStack(),
                 _modalService);
         }
@@ -144,6 +134,28 @@ namespace Project.Tests.EditMode.UI
 
             Assert.Throws<System.InvalidOperationException>(
                 () => _modalService.ConfirmAsync(new ConfirmationModalRequest("Second", "Blocked")));
+        }
+
+        private UiScreenCatalog CreateCatalog()
+        {
+            var saveQuery = new EmptySaveGameQuery();
+            var newGame = new RecordingNewGameService();
+            var quit = new RecordingQuitService();
+            var audio = new RecordingAudioSettingsService();
+            var graphics = new RecordingGraphicsSettingsService();
+            var graphicsRevert = new ImmediateGraphicsRevertService();
+            var controls = new RecordingControlsSettingsService();
+            var load = new RecordingLoadGameService();
+            var delete = new RecordingDeleteSaveService();
+            var credits = new RecordingCreditsProvider();
+
+            return new UiScreenCatalog(
+                () => new MainMenuScreenController(_modalService, saveQuery, newGame, quit),
+                () => new LoadGameScreenController(saveQuery, load, delete, _modalService),
+                () => new SettingsScreenController(audio, graphics, graphicsRevert, controls),
+                () => new CreditsScreenController(credits),
+                () => new ExtrasScreenController(),
+                (screenId, title) => new TemporaryMenuScreenController(screenId, title));
         }
 
         private sealed class EmptySaveGameQuery : ISaveGameQuery

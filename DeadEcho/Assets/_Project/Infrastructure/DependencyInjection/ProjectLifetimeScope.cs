@@ -6,6 +6,7 @@ using Project.Infrastructure.SaveGames;
 using Project.Infrastructure.SceneLoading;
 using Project.Infrastructure.Settings;
 using Project.Infrastructure.UI;
+using Project.UI.MainMenu.Controllers;
 using Project.UI.Modals;
 using Project.UI.Navigation;
 using Project.UI.Runtime;
@@ -53,6 +54,29 @@ namespace Project.Infrastructure.DependencyInjection
             builder.Register<UnityApplicationQuitService>(Lifetime.Singleton).As<IApplicationQuitService>();
             builder.Register<StaticCreditsContentProvider>(Lifetime.Singleton).As<ICreditsContentProvider>();
             builder.Register<UiNavigationStack>(Lifetime.Singleton);
+            builder.Register<MainMenuScreenController>(Lifetime.Transient);
+            builder.Register<LoadGameScreenController>(Lifetime.Transient);
+            builder.Register<SettingsScreenController>(Lifetime.Transient);
+            builder.Register<CreditsScreenController>(Lifetime.Transient);
+            builder.Register<ExtrasScreenController>(Lifetime.Transient);
+            builder.RegisterFactory<MainMenuScreenController>(
+                resolver => () => resolver.Resolve<MainMenuScreenController>(),
+                Lifetime.Singleton);
+            builder.RegisterFactory<LoadGameScreenController>(
+                resolver => () => resolver.Resolve<LoadGameScreenController>(),
+                Lifetime.Singleton);
+            builder.RegisterFactory<SettingsScreenController>(
+                resolver => () => resolver.Resolve<SettingsScreenController>(),
+                Lifetime.Singleton);
+            builder.RegisterFactory<CreditsScreenController>(
+                resolver => () => resolver.Resolve<CreditsScreenController>(),
+                Lifetime.Singleton);
+            builder.RegisterFactory<ExtrasScreenController>(
+                resolver => () => resolver.Resolve<ExtrasScreenController>(),
+                Lifetime.Singleton);
+            builder.RegisterFactory<UiScreenId, string, TemporaryMenuScreenController>(
+                _ => (screenId, title) => new TemporaryMenuScreenController(screenId, title),
+                Lifetime.Singleton);
             builder.Register<UiScreenCatalog>(Lifetime.Singleton);
             builder.Register<ModalService>(Lifetime.Singleton).AsSelf().As<IModalService>();
             builder.Register<UiService>(Lifetime.Singleton).AsSelf().As<IUiService>();

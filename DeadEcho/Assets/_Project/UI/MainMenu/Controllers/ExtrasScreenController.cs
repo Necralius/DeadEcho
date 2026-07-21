@@ -7,6 +7,8 @@ namespace Project.UI.MainMenu.Controllers
 {
     public sealed class ExtrasScreenController : IUiScreenController, IUiNavigationRequestSource
     {
+        private readonly Button _backButton;
+
         public ExtrasScreenController()
         {
             Root = new VisualElement { name = "extras-screen" };
@@ -27,11 +29,11 @@ namespace Project.UI.MainMenu.Controllers
             }
 
             Root.Add(grid);
-            var back = new Button(() => BackRequested?.Invoke()) { text = "Back" };
-            back.AddToClassList("button-secondary");
-            back.AddToClassList("menu-button");
-            Root.Add(back);
-            DefaultFocus = back;
+            _backButton = new Button(OnBackClicked) { text = "Back" };
+            _backButton.AddToClassList("button-secondary");
+            _backButton.AddToClassList("menu-button");
+            Root.Add(_backButton);
+            DefaultFocus = _backButton;
         }
 
         public event Action<UiScreenId> ShowRequested { add { } remove { } }
@@ -42,6 +44,13 @@ namespace Project.UI.MainMenu.Controllers
         public VisualElement DefaultFocus { get; }
         public void Open() => Root.style.display = DisplayStyle.Flex;
         public void Close() => Root.RemoveFromHierarchy();
-        public void Dispose() => Close();
+
+        public void Dispose()
+        {
+            _backButton.clicked -= OnBackClicked;
+            Close();
+        }
+
+        private void OnBackClicked() => BackRequested?.Invoke();
     }
 }

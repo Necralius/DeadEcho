@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Project.Core.Services;
+using Project.UI.MainMenu.Controllers;
 using Project.UI.Modals;
 using Project.UI.Navigation;
 using Project.UI.Runtime;
@@ -18,22 +19,24 @@ namespace Project.Tests.PlayMode.UI
         {
             var root = new HeadlessUiRoot();
             var modalService = new ModalService(root);
-            var uiService = new UiService(
-                root,
-                new UiScreenCatalog(
-                    modalService,
-                    new EmptySaveGameQuery(),
-                    new RecordingNewGameService(),
-                    new RecordingQuitService(),
-                    new RecordingAudioSettingsService(),
-                    new RecordingGraphicsSettingsService(),
-                    new ImmediateGraphicsRevertService(),
-                    new RecordingControlsSettingsService(),
-                    new RecordingLoadGameService(),
-                    new RecordingDeleteSaveService(),
-                    new RecordingCreditsProvider()),
-                new UiNavigationStack(),
-                modalService);
+            var saveQuery = new EmptySaveGameQuery();
+            var newGame = new RecordingNewGameService();
+            var quit = new RecordingQuitService();
+            var audio = new RecordingAudioSettingsService();
+            var graphics = new RecordingGraphicsSettingsService();
+            var graphicsRevert = new ImmediateGraphicsRevertService();
+            var controls = new RecordingControlsSettingsService();
+            var load = new RecordingLoadGameService();
+            var delete = new RecordingDeleteSaveService();
+            var credits = new RecordingCreditsProvider();
+            var catalog = new UiScreenCatalog(
+                () => new MainMenuScreenController(modalService, saveQuery, newGame, quit),
+                () => new LoadGameScreenController(saveQuery, load, delete, modalService),
+                () => new SettingsScreenController(audio, graphics, graphicsRevert, controls),
+                () => new CreditsScreenController(credits),
+                () => new ExtrasScreenController(),
+                (screenId, title) => new TemporaryMenuScreenController(screenId, title));
+            var uiService = new UiService(root, catalog, new UiNavigationStack(), modalService);
 
             uiService.Replace(UiScreenId.MainMenu);
             yield return null;

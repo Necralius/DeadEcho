@@ -28,7 +28,7 @@ namespace Project.UI.MainMenu.Controllers
             }
 
             Root.Add(scroll);
-            _backButton = new Button(() => BackRequested?.Invoke()) { text = "Back" };
+            _backButton = new Button(OnBackClicked) { text = "Back" };
             _backButton.AddToClassList("button-secondary");
             _backButton.AddToClassList("menu-button");
             Root.Add(_backButton);
@@ -43,6 +43,13 @@ namespace Project.UI.MainMenu.Controllers
         public VisualElement DefaultFocus { get; }
         public void Open() => Root.style.display = DisplayStyle.Flex;
         public void Close() => Root.RemoveFromHierarchy();
-        public void Dispose() => Close();
+
+        public void Dispose()
+        {
+            _backButton.clicked -= OnBackClicked;
+            Close();
+        }
+
+        private void OnBackClicked() => BackRequested?.Invoke();
     }
 }
