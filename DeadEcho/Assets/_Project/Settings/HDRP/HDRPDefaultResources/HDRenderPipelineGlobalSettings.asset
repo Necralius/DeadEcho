@@ -200,7 +200,31 @@ MonoBehaviour:
       - rid: 851431155923157023
       - rid: 851431155923157024
     m_RuntimeSettings:
-      m_List: []
+      m_List:
+      - rid: 8556427327610290176
+      - rid: 8556427327610290180
+      - rid: 8556427327610290182
+      - rid: 851431155923156995
+      - rid: 851431155923156996
+      - rid: 851431155923156997
+      - rid: 851431155923156999
+      - rid: 851431155923157000
+      - rid: 851431155923157001
+      - rid: 851431155923157002
+      - rid: 851431155923157003
+      - rid: 851431155923157004
+      - rid: 851431155923157005
+      - rid: 851431155923157006
+      - rid: 851431155923157007
+      - rid: 851431155923157011
+      - rid: 851431155923157013
+      - rid: 851431155923157016
+      - rid: 851431155923157017
+      - rid: 851431155923157018
+      - rid: 851431155923157019
+      - rid: 851431155923157020
+      - rid: 851431155923157021
+      - rid: 851431155923157022
   renderingLayerNames:
   - Light Layer default
   - Light Layer 1
@@ -244,6 +268,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
     - rid: 851431155923156994
       type: {class: RayTracingRenderPipelineResources, ns: UnityEngine.Rendering.UnifiedRayTracing, asm: Unity.UnifiedRayTracing.Runtime}
       data:
