@@ -4,12 +4,14 @@ using Project.Core.StateMachine;
 using Project.Infrastructure.Input;
 using Project.Infrastructure.SaveGames;
 using Project.Infrastructure.SceneLoading;
+using Project.Infrastructure.SceneTransitions;
 using Project.Infrastructure.Settings;
 using Project.Infrastructure.UI;
 using Project.UI.MainMenu.Controllers;
 using Project.UI.Modals;
 using Project.UI.Navigation;
 using Project.UI.Runtime;
+using Project.UI.SceneTransitions;
 using Project.UI.Services;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -35,6 +37,13 @@ namespace Project.Infrastructure.DependencyInjection
             builder.RegisterInstance(root);
 
             builder.Register<GameEventBus>(Lifetime.Singleton).As<IGameEventBus>();
+            builder.Register<SceneTransitionProgressWeights>(Lifetime.Singleton);
+            builder.Register<ScenePayloadStore>(Lifetime.Singleton).As<IScenePayloadStore>();
+            builder.Register<SceneGameplayGate>(Lifetime.Singleton).As<ISceneGameplayGate>();
+            builder.Register<UnitySceneOperations>(Lifetime.Singleton).As<IUnitySceneOperations>();
+            builder.Register(_ => new SceneReadinessService(), Lifetime.Singleton).As<ISceneReadinessService>();
+            builder.Register<SceneLoadingView>(Lifetime.Singleton).As<ISceneLoadingView>();
+            builder.Register<SceneTransitionService>(Lifetime.Singleton).As<ISceneTransitionService>();
             builder.Register<UnitySceneLoader>(Lifetime.Singleton).As<ISceneLoader>();
             builder.Register<UnityInputService>(Lifetime.Singleton).As<IInputService>();
             builder.Register<PlaceholderAudioService>(Lifetime.Singleton).As<IAudioService>();

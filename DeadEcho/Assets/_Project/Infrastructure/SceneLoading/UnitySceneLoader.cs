@@ -1,15 +1,21 @@
+using System.Threading.Tasks;
 using Project.Core.Services;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace Project.Infrastructure.SceneLoading
 {
     public sealed class UnitySceneLoader : ISceneLoader
     {
-        private AsyncOperation _currentOperation;
+        private readonly ISceneTransitionService _sceneTransitionService;
+        private Task<SceneTransitionResult> _currentTransition;
 
-        public bool IsLoading => _currentOperation != null && !_currentOperation.isDone;
-        public float Progress => _currentOperation?.progress ?? 0f;
+        public UnitySceneLoader(ISceneTransitionService sceneTransitionService)
+        {
+            _sceneTransitionService = sceneTransitionService;
+        }
+
+        public bool IsLoading => _sceneTransitionService.IsTransitioning;
+        public float Progress => _currentTransition == null || _currentTransition.IsCompleted ? 1f : 0f;
 
         public void LoadScene(string sceneName)
         {
@@ -19,8 +25,8 @@ namespace Project.Infrastructure.SceneLoading
                 return;
             }
 
-            Debug.Log($"[UnitySceneLoader] Loading scene '{sceneName}'.");
-            _currentOperation = SceneManager.LoadSceneAsync(sceneName);
+            Debug.Log($"[UnitySceneLoader] Delegating scene load '{sceneName}' to SceneTransitionService.");
+            _currentTransition = _sceneTransitionService.TransitionAsync(new SceneTransitionRequest(sceneName));
         }
     }
 }

@@ -10,6 +10,7 @@ namespace Project.UI.Runtime
         public const string ScreenLayerName = "screen-layer";
         public const string ModalLayerName = "modal-layer";
         public const string InteractionBlockerName = "interaction-blocker";
+        public const string LoadingLayerName = "loading-layer";
         private const string SharedThemePath = "UI/Shared/MainMenuTheme";
 
         [SerializeField] private UIDocument document;
@@ -19,6 +20,7 @@ namespace Project.UI.Runtime
         public VisualElement ScreenLayer { get; private set; }
         public VisualElement ModalLayer { get; private set; }
         public VisualElement InteractionBlocker { get; private set; }
+        public VisualElement LoadingLayer { get; private set; }
 
         public event Action CancelRequested;
 
@@ -43,13 +45,16 @@ namespace Project.UI.Runtime
             ScreenLayer = EnsureLayer(ScreenLayerName);
             InteractionBlocker = EnsureLayer(InteractionBlockerName);
             ModalLayer = EnsureLayer(ModalLayerName);
+            LoadingLayer = EnsureLayer(LoadingLayerName);
 
             StretchToPanel(ScreenLayer);
             StretchToPanel(InteractionBlocker);
             StretchToPanel(ModalLayer);
+            StretchToPanel(LoadingLayer);
             InteractionBlocker.pickingMode = PickingMode.Position;
             InteractionBlocker.style.display = DisplayStyle.None;
             ModalLayer.style.display = DisplayStyle.None;
+            LoadingLayer.style.display = DisplayStyle.None;
 
             Root.focusable = true;
             Root.RegisterCallback<KeyDownEvent>(OnKeyDown);

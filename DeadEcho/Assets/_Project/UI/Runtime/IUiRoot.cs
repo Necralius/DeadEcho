@@ -9,6 +9,7 @@ namespace Project.UI.Runtime
         VisualElement ScreenLayer { get; }
         VisualElement ModalLayer { get; }
         VisualElement InteractionBlocker { get; }
+        VisualElement LoadingLayer { get; }
         event Action CancelRequested;
 
         void Focus(VisualElement element);
