@@ -2,7 +2,11 @@ namespace Project.Core.Services
 {
     public interface IUiService
     {
-        void ShowScreen(string screenId);
-        void HideScreen(string screenId);
+        bool CanGoBack { get; }
+
+        void Show(UiScreenId screenId);
+        void Replace(UiScreenId screenId);
+        void Back();
+        void CloseCurrent();
     }
 }
