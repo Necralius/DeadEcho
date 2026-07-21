@@ -7,11 +7,13 @@ namespace Project.Core.StateMachine.States
     {
         private readonly AppStateMachine _stateMachine;
         private readonly IInputService _inputService;
+        private readonly IUiService _uiService;
 
-        public MainMenuState(AppStateMachine stateMachine, IInputService inputService = null)
+        public MainMenuState(AppStateMachine stateMachine, IInputService inputService = null, IUiService uiService = null)
         {
             _stateMachine = stateMachine;
             _inputService = inputService;
+            _uiService = uiService;
         }
 
         public AppStateId Id => AppStateId.MainMenu;
@@ -21,10 +23,12 @@ namespace Project.Core.StateMachine.States
             Debug.Log("[MainMenuState] Enter - main menu is active.");
             _inputService?.DisableGameplayInput();
             _inputService?.EnableUiInput();
+            _uiService?.Replace(UiScreenId.MainMenu);
         }
 
         public void Exit()
         {
+            _uiService?.CloseCurrent();
             Debug.Log("[MainMenuState] Exit.");
         }
 

@@ -2,10 +2,17 @@ using Project.Audio.Services;
 using Project.Core.Services;
 using Project.Core.StateMachine;
 using Project.Infrastructure.Input;
+using Project.Infrastructure.SaveGames;
 using Project.Infrastructure.SceneLoading;
+using Project.Infrastructure.Settings;
+using Project.Infrastructure.UI;
+using Project.UI.Modals;
+using Project.UI.Navigation;
+using Project.UI.Runtime;
 using Project.UI.Services;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UIElements;
 using VContainer;
 using VContainer.Unity;
 
@@ -14,23 +21,54 @@ namespace Project.Infrastructure.DependencyInjection
     public sealed class ProjectLifetimeScope : LifetimeScope
     {
         [SerializeField] private InputActionAsset inputActions;
+        [SerializeField] private UiRoot uiRoot;
 
         protected override void Configure(IContainerBuilder builder)
         {
             InputActionAsset inputActionAsset = inputActions != null
                 ? inputActions
                 : DeadEchoInputActionsFactory.CreateDefault();
+            IUiRoot root = uiRoot != null ? uiRoot : CreateRuntimeUiRoot();
 
             builder.RegisterInstance(inputActionAsset);
+            builder.RegisterInstance(root);
 
             builder.Register<GameEventBus>(Lifetime.Singleton).As<IGameEventBus>();
             builder.Register<UnitySceneLoader>(Lifetime.Singleton).As<ISceneLoader>();
             builder.Register<UnityInputService>(Lifetime.Singleton).As<IInputService>();
             builder.Register<PlaceholderAudioService>(Lifetime.Singleton).As<IAudioService>();
-            builder.Register<PlaceholderUiService>(Lifetime.Singleton).As<IUiService>();
-            builder.Register(resolver => AppStateMachineFactory.CreateDefault(resolver.Resolve<IInputService>()), Lifetime.Singleton);
+            builder.Register<PlayerPrefsSettingsStorage>(Lifetime.Singleton).As<ISettingsStorage>();
+            builder.Register<UnityAudioSettingsService>(Lifetime.Singleton).As<IAudioSettingsService>();
+            builder.Register<UnityGraphicsSettingsService>(Lifetime.Singleton).As<IGraphicsSettingsService>();
+            builder.Register<GraphicsRevertService>(Lifetime.Singleton).As<IGraphicsRevertService>();
+            builder.Register<UnityControlsSettingsService>(Lifetime.Singleton).As<IControlsSettingsService>();
+            builder.Register<NoSaveGameQuery>(Lifetime.Singleton).As<ISaveGameQuery>();
+            builder.Register<TemporaryNewGameFlow>(Lifetime.Singleton).As<INewGameFlow>();
+            builder.Register<TemporaryNewGameService>(Lifetime.Singleton).As<INewGameService>();
+            builder.Register<TemporaryLoadGameService>(Lifetime.Singleton).As<ILoadGameService>();
+            builder.Register<TemporaryDeleteSaveService>(Lifetime.Singleton).As<IDeleteSaveService>();
+            builder.Register<UnityApplicationQuitService>(Lifetime.Singleton).As<IApplicationQuitService>();
+            builder.Register<StaticCreditsContentProvider>(Lifetime.Singleton).As<ICreditsContentProvider>();
+            builder.Register<UiNavigationStack>(Lifetime.Singleton);
+            builder.Register<UiScreenCatalog>(Lifetime.Singleton);
+            builder.Register<ModalService>(Lifetime.Singleton).AsSelf().As<IModalService>();
+            builder.Register<UiService>(Lifetime.Singleton).AsSelf().As<IUiService>();
+            builder.Register(
+                resolver => AppStateMachineFactory.CreateDefault(
+                    resolver.Resolve<IInputService>(),
+                    resolver.Resolve<IUiService>()),
+                Lifetime.Singleton);
 
             builder.RegisterEntryPoint<AppStateMachineStartup>(Lifetime.Singleton);
+        }
+
+        private static UiRoot CreateRuntimeUiRoot()
+        {
+            var rootObject = new GameObject("UiRoot");
+            rootObject.AddComponent<UIDocument>();
+            var root = rootObject.AddComponent<UiRoot>();
+            root.Initialize();
+            return root;
         }
     }
 }
