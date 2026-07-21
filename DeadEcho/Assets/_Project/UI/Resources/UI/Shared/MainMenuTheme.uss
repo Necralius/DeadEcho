@@ -246,21 +246,55 @@
     margin-right: 10px;
 }
 
+.settings-compact-actions {
+    margin-top: 8px;
+}
+
+.settings-action-button {
+    min-width: 132px;
+    max-width: 190px;
+}
+
 .save-list,
 .credits-scroll,
-.controls-scroll {
+.controls-scroll,
+.graphics-scroll {
     flex-grow: 1;
     min-height: 0;
 }
 
-.controls-scroll {
+.controls-scroll,
+.graphics-scroll {
     margin-bottom: 10px;
 }
 
-.controls-grid {
+.controls-grid,
+.graphics-grid {
     flex-direction: row;
     flex-wrap: wrap;
     align-items: stretch;
+}
+
+.graphics-setting-card {
+    width: 46%;
+    min-width: 260px;
+    min-height: 86px;
+    margin-right: 14px;
+    margin-bottom: 14px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    justify-content: center;
+    background-color: rgba(12, 15, 16, 0.96);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(55, 66, 63);
+    border-right-color: rgb(55, 66, 63);
+    border-top-color: rgb(55, 66, 63);
+    border-bottom-color: rgb(55, 66, 63);
 }
 
 .save-row,
@@ -393,8 +427,59 @@
 .ui-slider,
 .ui-toggle,
 .ui-dropdown,
+.ui-integer-field,
 .ui-tabs {
     color: rgb(220, 225, 218);
+}
+
+.ui-dropdown,
+.ui-integer-field,
+.graphics-toggle {
+    width: 100%;
+}
+
+.ui-dropdown .unity-base-field__label,
+.ui-integer-field .unity-base-field__label,
+.graphics-toggle .unity-toggle__label {
+    color: rgb(220, 225, 218);
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.ui-dropdown .unity-base-popup-field__input,
+.ui-dropdown .unity-popup-field__input,
+.ui-integer-field .unity-text-input {
+    min-height: 34px;
+    padding-left: 10px;
+    padding-right: 10px;
+    color: rgb(238, 241, 232);
+    background-color: rgb(19, 24, 25);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(78, 91, 87);
+    border-right-color: rgb(78, 91, 87);
+    border-top-color: rgb(78, 91, 87);
+    border-bottom-color: rgb(78, 91, 87);
+}
+
+.ui-dropdown .unity-base-popup-field__text,
+.ui-dropdown .unity-popup-field__text {
+    color: rgb(238, 241, 232);
+}
+
+.ui-dropdown:focus .unity-base-popup-field__input,
+.ui-dropdown:hover .unity-base-popup-field__input,
+.ui-dropdown:focus .unity-popup-field__input,
+.ui-dropdown:hover .unity-popup-field__input,
+.ui-integer-field:focus .unity-text-input,
+.ui-integer-field:hover .unity-text-input {
+    background-color: rgb(27, 33, 34);
+    border-left-color: rgb(176, 58, 63);
+    border-right-color: rgb(176, 58, 63);
+    border-top-color: rgb(176, 58, 63);
+    border-bottom-color: rgb(176, 58, 63);
 }
 
 .ui-tab-selected,

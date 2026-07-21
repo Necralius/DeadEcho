@@ -151,14 +151,20 @@ namespace Project.UI.MainMenu.Controllers
             dirtyLabel.AddToClassList(_graphicsDirty ? "settings-dirty" : "screen-placeholder");
             _content.Add(dirtyLabel);
 
-            AddEnumField("Display Mode", _pendingGraphics.DisplayMode, value =>
+            var scroll = new ScrollView(ScrollViewMode.Vertical) { name = "graphics-scroll" };
+            scroll.AddToClassList("graphics-scroll");
+            var grid = new VisualElement { name = "graphics-grid" };
+            grid.AddToClassList("graphics-grid");
+            scroll.Add(grid);
+
+            AddEnumField(grid, "Display Mode", _pendingGraphics.DisplayMode, value =>
             {
                 _pendingGraphics = new GraphicsSettingsSnapshot(value, _pendingGraphics.Resolution, _pendingGraphics.QualityPreset, _pendingGraphics.VSync, _pendingGraphics.FpsLimit);
                 _graphicsDirty = true;
                 ShowTab(SettingsTab.Graphics);
             });
 
-            AddPopup("Resolution", _graphicsSettings.AvailableResolutions.Select(option => option.Label).ToList(), _pendingGraphics.Resolution.Label, index =>
+            AddPopup(grid, "Resolution", _graphicsSettings.AvailableResolutions.Select(option => option.Label).ToList(), _pendingGraphics.Resolution.Label, index =>
             {
                 ResolutionOption option = _graphicsSettings.AvailableResolutions[index];
                 _pendingGraphics = new GraphicsSettingsSnapshot(_pendingGraphics.DisplayMode, option, _pendingGraphics.QualityPreset, _pendingGraphics.VSync, _pendingGraphics.FpsLimit);
@@ -168,7 +174,7 @@ namespace Project.UI.MainMenu.Controllers
 
             if (_graphicsSettings.QualityPresets.Count > 0)
             {
-                AddPopup("Quality Preset", _graphicsSettings.QualityPresets.ToList(), _graphicsSettings.QualityPresets[Math.Max(0, Math.Min(_pendingGraphics.QualityPreset, _graphicsSettings.QualityPresets.Count - 1))], index =>
+                AddPopup(grid, "Quality Preset", _graphicsSettings.QualityPresets.ToList(), _graphicsSettings.QualityPresets[Math.Max(0, Math.Min(_pendingGraphics.QualityPreset, _graphicsSettings.QualityPresets.Count - 1))], index =>
                 {
                     _pendingGraphics = new GraphicsSettingsSnapshot(_pendingGraphics.DisplayMode, _pendingGraphics.Resolution, index, _pendingGraphics.VSync, _pendingGraphics.FpsLimit);
                     _graphicsDirty = true;
@@ -176,25 +182,34 @@ namespace Project.UI.MainMenu.Controllers
                 });
             }
 
+            var vSyncRow = new VisualElement();
+            vSyncRow.AddToClassList("graphics-setting-card");
             var vSync = new Toggle("VSync") { value = _pendingGraphics.VSync };
             vSync.AddToClassList("ui-toggle");
+            vSync.AddToClassList("graphics-toggle");
             vSync.RegisterValueChangedCallback(evt =>
             {
                 _pendingGraphics = new GraphicsSettingsSnapshot(_pendingGraphics.DisplayMode, _pendingGraphics.Resolution, _pendingGraphics.QualityPreset, evt.newValue, _pendingGraphics.FpsLimit);
                 _graphicsDirty = true;
             });
-            _content.Add(vSync);
+            vSyncRow.Add(vSync);
+            grid.Add(vSyncRow);
 
-            AddIntegerField("FPS Limit", _pendingGraphics.FpsLimit, value =>
+            AddIntegerField(grid, "FPS Limit", _pendingGraphics.FpsLimit, value =>
             {
                 _pendingGraphics = new GraphicsSettingsSnapshot(_pendingGraphics.DisplayMode, _pendingGraphics.Resolution, _pendingGraphics.QualityPreset, _pendingGraphics.VSync, Math.Max(30, value));
                 _graphicsDirty = true;
             });
 
+            _content.Add(scroll);
+
             var actions = new VisualElement();
             actions.AddToClassList("screen-actions");
+            actions.AddToClassList("settings-compact-actions");
             Button apply = CreateButton("Apply", "button-primary");
             Button defaults = CreateButton("Restore Defaults", "button-secondary");
+            apply.AddToClassList("settings-action-button");
+            defaults.AddToClassList("settings-action-button");
             apply.clicked += async () =>
             {
                 bool kept = await _graphicsRevertService.ApplyWithConfirmationAsync(_pendingGraphics);
@@ -293,22 +308,44 @@ namespace Project.UI.MainMenu.Controllers
             AddPopup(label, Enum.GetNames(typeof(DisplayModeOption)).ToList(), value.ToString(), index => changed((DisplayModeOption)index));
         }
 
+        private void AddEnumField(VisualElement parent, string label, DisplayModeOption value, Action<DisplayModeOption> changed)
+        {
+            AddPopup(parent, label, Enum.GetNames(typeof(DisplayModeOption)).ToList(), value.ToString(), index => changed((DisplayModeOption)index));
+        }
+
         private void AddPopup(string label, List<string> choices, string value, Action<int> changed)
+        {
+            AddPopup(_content, label, choices, value, changed);
+        }
+
+        private void AddPopup(VisualElement parent, string label, List<string> choices, string value, Action<int> changed)
         {
             if (choices.Count == 0)
                 return;
 
+            var row = new VisualElement();
+            row.AddToClassList("graphics-setting-card");
             var field = new PopupField<string>(label, choices, Math.Max(0, choices.IndexOf(value)));
             field.AddToClassList("ui-dropdown");
             field.RegisterValueChangedCallback(evt => changed(choices.IndexOf(evt.newValue)));
-            _content.Add(field);
+            row.Add(field);
+            parent.Add(row);
         }
 
         private void AddIntegerField(string label, int value, Action<int> changed)
         {
+            AddIntegerField(_content, label, value, changed);
+        }
+
+        private void AddIntegerField(VisualElement parent, string label, int value, Action<int> changed)
+        {
             var field = new IntegerField(label) { value = value };
+            field.AddToClassList("ui-integer-field");
             field.RegisterValueChangedCallback(evt => changed(evt.newValue));
-            _content.Add(field);
+            var row = new VisualElement();
+            row.AddToClassList("graphics-setting-card");
+            row.Add(field);
+            parent.Add(row);
         }
 
         private static Button CreateTab(string text)
