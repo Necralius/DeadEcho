@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using UnityEngine.SceneManagement;
 
 namespace Project.Core.Services
 {
@@ -25,14 +28,40 @@ namespace Project.Core.Services
 
     public interface ISceneReadinessService
     {
-        Task InitializeAsync(string sceneName, ScenePayload payload, CancellationToken cancellationToken = default);
-        Task WarmUpAsync(string sceneName, CancellationToken cancellationToken = default);
+        Task<SceneReadinessResult> InitializeAsync(
+            SceneInitializationContext context,
+            IProgress<float> progress,
+            CancellationToken cancellationToken = default);
+
+        Task<SceneReadinessResult> WarmUpAsync(
+            SceneWarmupContext context,
+            IProgress<float> progress,
+            CancellationToken cancellationToken = default);
+
+        Task<SceneReadinessResult> ValidateAsync(
+            SceneInitializationContext context,
+            CancellationToken cancellationToken = default);
     }
 
     public interface ISceneInitializer
     {
-        Task InitializeAsync(ScenePayload payload, CancellationToken cancellationToken = default);
-        Task WarmUpAsync(CancellationToken cancellationToken = default);
+        int Order { get; }
+
+        Task InitializeAsync(
+            SceneInitializationContext context,
+            IProgress<float> progress,
+            CancellationToken cancellationToken = default);
+    }
+
+    public interface ISceneWarmupStep
+    {
+        int Order { get; }
+        float Weight { get; }
+
+        Task WarmupAsync(
+            SceneWarmupContext context,
+            IProgress<float> progress,
+            CancellationToken cancellationToken = default);
     }
 
     public interface ISceneGameplayGate
@@ -49,5 +78,11 @@ namespace Project.Core.Services
         ScenePayload Consume();
         void Store(ScenePayload payload);
         void Clear();
+    }
+
+    public interface ISceneScopeReadinessProvider
+    {
+        IReadOnlyList<ISceneInitializer> GetInitializers(Scene scene);
+        IReadOnlyList<ISceneWarmupStep> GetWarmupSteps(Scene scene);
     }
 }

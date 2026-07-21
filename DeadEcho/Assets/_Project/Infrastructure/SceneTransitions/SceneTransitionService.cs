@@ -109,16 +109,53 @@ namespace Project.Infrastructure.SceneTransitions
                 }
 
                 await SetStatusAsync(SceneTransitionStatus.ResolvingSceneScope, _weights.ActivationEnd, "Inicializando sistemas...", cancellationToken);
+                Scene loadedScene = _sceneOperations.GetScene(request.TargetSceneName);
+                var initializationContext = new SceneInitializationContext(
+                    loadedScene,
+                    _payloadStore.Peek(),
+                    request);
+                var warmupContext = new SceneWarmupContext(
+                    loadedScene,
+                    _payloadStore.Peek(),
+                    request);
 
                 using (CancellationTokenSource initializationTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
                 {
                     initializationTimeout.CancelAfter(TimeSpan.FromSeconds(Mathf.Max(1f, request.InitializationTimeoutSeconds)));
 
-                    await SetStatusAsync(SceneTransitionStatus.InitializingScene, _weights.InitializationEnd, "Inicializando sistemas...", initializationTimeout.Token);
-                    await _readinessService.InitializeAsync(request.TargetSceneName, _payloadStore.Peek(), initializationTimeout.Token);
+                    try
+                    {
+                        await SetStatusAsync(SceneTransitionStatus.InitializingScene, _weights.ActivationEnd, "Inicializando sistemas...", initializationTimeout.Token);
+                        SceneReadinessResult initializationResult = await _readinessService.InitializeAsync(
+                            initializationContext,
+                            new Progress<float>(value => SetProgress(Mathf.Lerp(_weights.ActivationEnd, _weights.InitializationEnd, value))),
+                            initializationTimeout.Token);
+                        EnsureReady(initializationResult, "Scene initialization failed.");
 
-                    await SetStatusAsync(SceneTransitionStatus.WarmingUpScene, _weights.WarmupEnd, "Preparando o mundo...", initializationTimeout.Token);
-                    await _readinessService.WarmUpAsync(request.TargetSceneName, initializationTimeout.Token);
+                        await SetStatusAsync(SceneTransitionStatus.WarmingUpScene, _weights.InitializationEnd, "Preparando o mundo...", initializationTimeout.Token);
+                        SceneReadinessResult warmupResult = await _readinessService.WarmUpAsync(
+                            warmupContext,
+                            new Progress<float>(value => SetProgress(Mathf.Lerp(_weights.InitializationEnd, _weights.WarmupEnd, value))),
+                            initializationTimeout.Token);
+                        EnsureReady(warmupResult, "Scene warmup failed.");
+
+                        _payloadStore.Consume();
+
+                        await _sceneOperations.WaitForFramesAsync(
+                            request.StabilizationFrameCount,
+                            includeEndOfFrame: true,
+                            cancellationToken: initializationTimeout.Token);
+
+                        SceneReadinessResult finalReadiness = await _readinessService.ValidateAsync(
+                            initializationContext,
+                            initializationTimeout.Token);
+                        EnsureReady(finalReadiness, "Scene readiness validation failed.");
+                    }
+                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                    {
+                        throw new TimeoutException(
+                            $"Scene initialization timed out after {request.InitializationTimeoutSeconds:0.##} seconds.");
+                    }
                 }
 
                 if (request.SetAsActiveScene)
@@ -190,6 +227,20 @@ namespace Project.Infrastructure.SceneTransitions
         {
             _lastProgress = Mathf.Clamp01(Mathf.Max(_lastProgress, normalizedProgress));
             _loadingView.SetProgress(_lastProgress);
+        }
+
+        private static void EnsureReady(SceneReadinessResult result, string fallbackMessage)
+        {
+            if (result != null && result.IsReady)
+                return;
+
+            if (result != null && result.Errors.Count > 0)
+                throw new InvalidOperationException(result.Errors[0].Message, result.Errors[0].Exception);
+
+            if (result != null && result.PendingSystems.Count > 0)
+                throw new InvalidOperationException($"{fallbackMessage} Pending: {string.Join(", ", result.PendingSystems)}");
+
+            throw new InvalidOperationException(fallbackMessage);
         }
 
         private static async Task WaitForMinimumDurationAsync(

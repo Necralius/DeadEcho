@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -25,6 +26,11 @@ namespace Project.Infrastructure.SceneTransitions
             return false;
         }
 
+        public Scene GetScene(string sceneName)
+        {
+            return SceneManager.GetSceneByName(sceneName);
+        }
+
         public ISceneLoadOperation LoadSceneAsync(string sceneName, LoadSceneMode mode)
         {
             AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName, mode);
@@ -49,6 +55,25 @@ namespace Project.Infrastructure.SceneTransitions
             AsyncOperation operation = SceneManager.UnloadSceneAsync(scene);
             while (operation != null && !operation.isDone)
                 await Task.Yield();
+        }
+
+        public async Task WaitForFramesAsync(
+            int frameCount,
+            bool includeEndOfFrame,
+            CancellationToken cancellationToken = default)
+        {
+            int frames = Mathf.Max(0, frameCount);
+            for (int i = 0; i < frames; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Yield();
+            }
+
+            if (includeEndOfFrame)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Yield();
+            }
         }
 
         private sealed class UnitySceneLoadOperation : ISceneLoadOperation

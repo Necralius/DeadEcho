@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -101,8 +102,77 @@ namespace Project.Tests.EditMode.SceneTransitions
             await service.TransitionAsync(new SceneTransitionRequest("Gameplay") { MinimumLoadingScreenDuration = 0f });
 
             CollectionAssert.AreEqual(
-                new[] { "load", "activate", "initialize", "warmup", "set-active", "unload:Menu" },
+                new[] { "load", "activate", "initialize", "warmup", "wait-frames:2:True", "validate", "set-active", "unload:Menu" },
                 scenes.Events);
+        }
+
+        [Test]
+        public async Task KeepsGameplayBlockedDuringInitialization()
+        {
+            SceneGameplayGate gate = new SceneGameplayGate();
+            FakeSceneOperations scenes = new FakeSceneOperations(true);
+            GateCheckingReadiness readiness = new GateCheckingReadiness(gate);
+            SceneTransitionService service = CreateService(
+                new FakeLoadingView(),
+                gate,
+                new ScenePayloadStore(),
+                scenes,
+                readiness);
+
+            SceneTransitionResult result = await service.TransitionAsync(
+                new SceneTransitionRequest("Gameplay") { MinimumLoadingScreenDuration = 0f });
+
+            Assert.IsTrue(result.Succeeded);
+            Assert.IsTrue(readiness.WasBlockedDuringInitialization);
+            Assert.IsFalse(gate.IsGameplayBlocked);
+        }
+
+        [Test]
+        public async Task PassesAndClearsPayloadAfterReadiness()
+        {
+            ScenePayloadStore payload = new ScenePayloadStore();
+            FakeSceneOperations scenes = new FakeSceneOperations(true);
+            PayloadRecordingReadiness readiness = new PayloadRecordingReadiness();
+            SceneTransitionService service = CreateService(
+                new FakeLoadingView(),
+                new SceneGameplayGate(),
+                payload,
+                scenes,
+                readiness);
+
+            await service.TransitionAsync(
+                new SceneTransitionRequest("Gameplay")
+                {
+                    Payload = new ScenePayload("LoadGame", new Dictionary<string, string> { { "saveId", "slot-01" } }),
+                    MinimumLoadingScreenDuration = 0f
+                });
+
+            Assert.AreEqual("LoadGame", readiness.InitializationPayload.EntryKind);
+            Assert.IsTrue(readiness.InitializationPayload.TryGetValue("saveId", out string saveId));
+            Assert.AreEqual("slot-01", saveId);
+            Assert.IsFalse(payload.HasPayload);
+        }
+
+        [Test]
+        public async Task FailsAndPreservesPreviousSceneWhenReadinessTimesOut()
+        {
+            FakeSceneOperations scenes = new FakeSceneOperations(true);
+            SceneTransitionService service = CreateService(
+                new FakeLoadingView(),
+                new SceneGameplayGate(),
+                new ScenePayloadStore(),
+                scenes,
+                new NeverReadyReadiness());
+
+            SceneTransitionResult result = await service.TransitionAsync(
+                new SceneTransitionRequest("Gameplay")
+                {
+                    MinimumLoadingScreenDuration = 0f,
+                    InitializationTimeoutSeconds = 1f
+                });
+
+            Assert.AreEqual(SceneTransitionStatus.Failed, result.Status);
+            CollectionAssert.DoesNotContain(scenes.Events, "unload:Menu");
         }
 
         [Test]
@@ -187,6 +257,8 @@ namespace Project.Tests.EditMode.SceneTransitions
 
             public bool CanLoadScene(string sceneName) => _canLoad;
 
+            public Scene GetScene(string sceneName) => SceneManager.GetActiveScene();
+
             public ISceneLoadOperation LoadSceneAsync(string sceneName, LoadSceneMode mode)
             {
                 Events.Add("load");
@@ -205,6 +277,12 @@ namespace Project.Tests.EditMode.SceneTransitions
                 Events.Add($"unload:{sceneName}");
                 if (ThrowOnUnload)
                     throw new System.InvalidOperationException("Unload failed.");
+                return Task.CompletedTask;
+            }
+
+            public Task WaitForFramesAsync(int frameCount, bool includeEndOfFrame, CancellationToken cancellationToken = default)
+            {
+                Events.Add($"wait-frames:{frameCount}:{includeEndOfFrame}");
                 return Task.CompletedTask;
             }
         }
@@ -238,16 +316,128 @@ namespace Project.Tests.EditMode.SceneTransitions
                 _events = events;
             }
 
-            public Task InitializeAsync(string sceneName, ScenePayload payload, CancellationToken cancellationToken = default)
+            public Task<SceneReadinessResult> InitializeAsync(
+                SceneInitializationContext context,
+                IProgress<float> progress,
+                CancellationToken cancellationToken = default)
             {
                 _events.Add("initialize");
-                return Task.CompletedTask;
+                progress?.Report(1f);
+                return Task.FromResult(SceneReadinessResult.Ready());
             }
 
-            public Task WarmUpAsync(string sceneName, CancellationToken cancellationToken = default)
+            public Task<SceneReadinessResult> WarmUpAsync(
+                SceneWarmupContext context,
+                IProgress<float> progress,
+                CancellationToken cancellationToken = default)
             {
                 _events.Add("warmup");
-                return Task.CompletedTask;
+                progress?.Report(1f);
+                return Task.FromResult(SceneReadinessResult.Ready());
+            }
+
+            public Task<SceneReadinessResult> ValidateAsync(
+                SceneInitializationContext context,
+                CancellationToken cancellationToken = default)
+            {
+                _events.Add("validate");
+                return Task.FromResult(SceneReadinessResult.Ready());
+            }
+        }
+
+        private sealed class GateCheckingReadiness : ISceneReadinessService
+        {
+            private readonly SceneGameplayGate _gate;
+
+            public GateCheckingReadiness(SceneGameplayGate gate)
+            {
+                _gate = gate;
+            }
+
+            public bool WasBlockedDuringInitialization { get; private set; }
+
+            public Task<SceneReadinessResult> InitializeAsync(
+                SceneInitializationContext context,
+                IProgress<float> progress,
+                CancellationToken cancellationToken = default)
+            {
+                WasBlockedDuringInitialization = _gate.IsGameplayBlocked;
+                progress?.Report(1f);
+                return Task.FromResult(SceneReadinessResult.Ready());
+            }
+
+            public Task<SceneReadinessResult> WarmUpAsync(
+                SceneWarmupContext context,
+                IProgress<float> progress,
+                CancellationToken cancellationToken = default)
+            {
+                progress?.Report(1f);
+                return Task.FromResult(SceneReadinessResult.Ready());
+            }
+
+            public Task<SceneReadinessResult> ValidateAsync(
+                SceneInitializationContext context,
+                CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult(SceneReadinessResult.Ready());
+            }
+        }
+
+        private sealed class PayloadRecordingReadiness : ISceneReadinessService
+        {
+            public ScenePayload InitializationPayload { get; private set; }
+
+            public Task<SceneReadinessResult> InitializeAsync(
+                SceneInitializationContext context,
+                IProgress<float> progress,
+                CancellationToken cancellationToken = default)
+            {
+                InitializationPayload = context.Payload;
+                progress?.Report(1f);
+                return Task.FromResult(SceneReadinessResult.Ready());
+            }
+
+            public Task<SceneReadinessResult> WarmUpAsync(
+                SceneWarmupContext context,
+                IProgress<float> progress,
+                CancellationToken cancellationToken = default)
+            {
+                progress?.Report(1f);
+                return Task.FromResult(SceneReadinessResult.Ready());
+            }
+
+            public Task<SceneReadinessResult> ValidateAsync(
+                SceneInitializationContext context,
+                CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult(SceneReadinessResult.Ready());
+            }
+        }
+
+        private sealed class NeverReadyReadiness : ISceneReadinessService
+        {
+            public async Task<SceneReadinessResult> InitializeAsync(
+                SceneInitializationContext context,
+                IProgress<float> progress,
+                CancellationToken cancellationToken = default)
+            {
+                await Task.Delay(System.Threading.Timeout.InfiniteTimeSpan, cancellationToken);
+                return SceneReadinessResult.Ready();
+            }
+
+            public Task<SceneReadinessResult> WarmUpAsync(
+                SceneWarmupContext context,
+                IProgress<float> progress,
+                CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult(SceneReadinessResult.Ready());
+            }
+
+            public Task<SceneReadinessResult> ValidateAsync(
+                SceneInitializationContext context,
+                CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult(SceneReadinessResult.Ready());
             }
         }
     }

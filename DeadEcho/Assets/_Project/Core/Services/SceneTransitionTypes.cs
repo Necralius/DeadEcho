@@ -40,6 +40,7 @@ namespace Project.Core.Services
         public bool UnloadPreviousScene { get; set; } = true;
         public float MinimumLoadingScreenDuration { get; set; } = 0.5f;
         public float InitializationTimeoutSeconds { get; set; } = 30f;
+        public int StabilizationFrameCount { get; set; } = 2;
         public ScenePayload Payload { get; set; }
     }
 

@@ -41,7 +41,8 @@ namespace Project.Infrastructure.DependencyInjection
             builder.Register<ScenePayloadStore>(Lifetime.Singleton).As<IScenePayloadStore>();
             builder.Register<SceneGameplayGate>(Lifetime.Singleton).As<ISceneGameplayGate>();
             builder.Register<UnitySceneOperations>(Lifetime.Singleton).As<IUnitySceneOperations>();
-            builder.Register(_ => new SceneReadinessService(), Lifetime.Singleton).As<ISceneReadinessService>();
+            builder.Register<SceneScopeReadinessProvider>(Lifetime.Singleton).As<ISceneScopeReadinessProvider>();
+            builder.Register<SceneReadinessService>(Lifetime.Singleton).As<ISceneReadinessService>();
             builder.Register<SceneLoadingView>(Lifetime.Singleton).As<ISceneLoadingView>();
             builder.Register<SceneTransitionService>(Lifetime.Singleton).As<ISceneTransitionService>();
             builder.Register<UnitySceneLoader>(Lifetime.Singleton).As<ISceneLoader>();
