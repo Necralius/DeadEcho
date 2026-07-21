@@ -22,7 +22,10 @@ namespace Project.Core.Services
         void SetProgress(float normalizedProgress);
         void SetStatus(string status);
         void SetTip(string tip);
-        void ShowError(SceneTransitionError error);
+        void ShowError(
+            SceneTransitionError error,
+            Func<Task> retryAsync = null,
+            Func<Task> returnToMainMenuAsync = null);
         Task HideAsync(CancellationToken cancellationToken = default);
     }
 
@@ -82,6 +85,7 @@ namespace Project.Core.Services
 
     public interface ISceneScopeReadinessProvider
     {
+        bool HasSceneScope(Scene scene);
         IReadOnlyList<ISceneInitializer> GetInitializers(Scene scene);
         IReadOnlyList<ISceneWarmupStep> GetWarmupSteps(Scene scene);
     }

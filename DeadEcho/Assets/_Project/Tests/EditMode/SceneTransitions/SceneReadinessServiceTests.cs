@@ -125,6 +125,7 @@ namespace Project.Tests.EditMode.SceneTransitions
                 _warmupSteps = warmupSteps;
             }
 
+            public bool HasSceneScope(Scene scene) => true;
             public IReadOnlyList<ISceneInitializer> GetInitializers(Scene scene) => _initializers;
             public IReadOnlyList<ISceneWarmupStep> GetWarmupSteps(Scene scene) => _warmupSteps;
         }

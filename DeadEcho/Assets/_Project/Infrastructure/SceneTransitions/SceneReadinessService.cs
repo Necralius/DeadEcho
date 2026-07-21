@@ -24,6 +24,9 @@ namespace Project.Infrastructure.SceneTransitions
             if (!context.Scene.IsValid())
                 return SceneReadinessResult.Failed(new SceneInitializationError("Scene", "Loaded scene is invalid."));
 
+            if (context.Request.RequireSceneLifetimeScope && !_readinessProvider.HasSceneScope(context.Scene))
+                return SceneReadinessResult.Pending("SceneLifetimeScope");
+
             IReadOnlyList<ISceneInitializer> initializers = _readinessProvider
                 .GetInitializers(context.Scene)
                 .OrderBy(initializer => initializer.Order)
@@ -31,6 +34,9 @@ namespace Project.Infrastructure.SceneTransitions
 
             if (initializers.Count == 0)
             {
+                if (context.Request.RequireSceneLifetimeScope)
+                    return SceneReadinessResult.Pending("ISceneInitializer");
+
                 progress?.Report(1f);
                 return SceneReadinessResult.Ready();
             }

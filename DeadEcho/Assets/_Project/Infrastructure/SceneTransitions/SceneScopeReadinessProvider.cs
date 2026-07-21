@@ -13,6 +13,11 @@ namespace Project.Infrastructure.SceneTransitions
         private static readonly IReadOnlyList<ISceneInitializer> EmptyInitializers = Array.Empty<ISceneInitializer>();
         private static readonly IReadOnlyList<ISceneWarmupStep> EmptyWarmupSteps = Array.Empty<ISceneWarmupStep>();
 
+        public bool HasSceneScope(Scene scene)
+        {
+            return FindScope(scene) != null;
+        }
+
         public IReadOnlyList<ISceneInitializer> GetInitializers(Scene scene)
         {
             SceneLifetimeScope scope = FindScope(scene);

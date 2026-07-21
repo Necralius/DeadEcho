@@ -26,9 +26,11 @@ namespace Project.Tests.EditMode.SceneTransitions
             SceneTransitionResult result = await service.TransitionAsync(new SceneTransitionRequest("MissingScene"));
 
             Assert.AreEqual(SceneTransitionStatus.Failed, result.Status);
+            Assert.AreEqual(SceneTransitionErrorCode.SceneNotFound, result.Error.Code);
+            Assert.AreEqual(SceneTransitionErrorPolicy.Fatal, result.Error.Policy);
             Assert.IsFalse(service.IsTransitioning);
             Assert.IsFalse(gate.IsGameplayBlocked);
-            Assert.AreEqual(0, loading.ShowCount);
+            Assert.AreEqual(1, loading.ShowCount);
         }
 
         [Test]
@@ -83,8 +85,28 @@ namespace Project.Tests.EditMode.SceneTransitions
                 });
 
             Assert.AreEqual(SceneTransitionStatus.Failed, result.Status);
+            Assert.AreEqual(SceneTransitionErrorCode.UnloadFailed, result.Error.Code);
             Assert.IsFalse(gate.IsGameplayBlocked);
             Assert.IsFalse(payload.HasPayload);
+        }
+
+        [Test]
+        public async Task FailsWhenSetActiveSceneFails()
+        {
+            FakeSceneOperations scenes = new FakeSceneOperations(true) { SetActiveSceneResult = false };
+            SceneTransitionService service = CreateService(
+                new FakeLoadingView(),
+                new SceneGameplayGate(),
+                new ScenePayloadStore(),
+                scenes);
+
+            SceneTransitionResult result = await service.TransitionAsync(
+                new SceneTransitionRequest("Gameplay") { MinimumLoadingScreenDuration = 0f });
+
+            Assert.AreEqual(SceneTransitionStatus.Failed, result.Status);
+            Assert.AreEqual(SceneTransitionErrorCode.SetActiveSceneFailed, result.Error.Code);
+            CollectionAssert.Contains(scenes.Events, "unload:Gameplay");
+            CollectionAssert.DoesNotContain(scenes.Events, "unload:Menu");
         }
 
         [Test]
@@ -172,7 +194,29 @@ namespace Project.Tests.EditMode.SceneTransitions
                 });
 
             Assert.AreEqual(SceneTransitionStatus.Failed, result.Status);
+            Assert.AreEqual(SceneTransitionErrorCode.Timeout, result.Error.Code);
+            Assert.IsTrue(result.Error.CanRetry);
             CollectionAssert.DoesNotContain(scenes.Events, "unload:Menu");
+        }
+
+        [Test]
+        public async Task ClassifiesCorruptedSaveAsRecoverableWithoutRetry()
+        {
+            FakeSceneOperations scenes = new FakeSceneOperations(true);
+            SceneTransitionService service = CreateService(
+                new FakeLoadingView(),
+                new SceneGameplayGate(),
+                new ScenePayloadStore(),
+                scenes,
+                new FailingReadiness("Save", "Corrupted save data."));
+
+            SceneTransitionResult result = await service.TransitionAsync(
+                new SceneTransitionRequest("Gameplay") { MinimumLoadingScreenDuration = 0f });
+
+            Assert.AreEqual(SceneTransitionStatus.Failed, result.Status);
+            Assert.AreEqual(SceneTransitionErrorCode.CorruptedSave, result.Error.Code);
+            Assert.AreEqual(SceneTransitionErrorPolicy.Recoverable, result.Error.Policy);
+            Assert.IsFalse(result.Error.CanRetry);
         }
 
         [Test]
@@ -217,6 +261,7 @@ namespace Project.Tests.EditMode.SceneTransitions
         {
             public int ShowCount { get; private set; }
             public int HideCount { get; private set; }
+            public SceneTransitionError LastError { get; private set; }
             public readonly List<float> Progress = new List<float>();
 
             public Task ShowAsync(CancellationToken cancellationToken = default)
@@ -232,7 +277,13 @@ namespace Project.Tests.EditMode.SceneTransitions
 
             public void SetStatus(string status) { }
             public void SetTip(string tip) { }
-            public void ShowError(SceneTransitionError error) { }
+            public void ShowError(
+                SceneTransitionError error,
+                Func<Task> retryAsync = null,
+                Func<Task> returnToMainMenuAsync = null)
+            {
+                LastError = error;
+            }
 
             public Task HideAsync(CancellationToken cancellationToken = default)
             {
@@ -253,6 +304,7 @@ namespace Project.Tests.EditMode.SceneTransitions
             public string ActiveSceneName { get; set; } = "Menu";
             public FakeLoadOperation Operation { get; set; } = new FakeLoadOperation { ProgressValue = 0.9f };
             public bool ThrowOnUnload { get; set; }
+            public bool SetActiveSceneResult { get; set; } = true;
             public List<string> Events { get; } = new List<string>();
 
             public bool CanLoadScene(string sceneName) => _canLoad;
@@ -269,7 +321,7 @@ namespace Project.Tests.EditMode.SceneTransitions
             {
                 Events.Add("set-active");
                 ActiveSceneName = sceneName;
-                return true;
+                return SetActiveSceneResult;
             }
 
             public Task UnloadSceneAsync(string sceneName)
@@ -423,6 +475,41 @@ namespace Project.Tests.EditMode.SceneTransitions
             {
                 await Task.Delay(System.Threading.Timeout.InfiniteTimeSpan, cancellationToken);
                 return SceneReadinessResult.Ready();
+            }
+
+            public Task<SceneReadinessResult> WarmUpAsync(
+                SceneWarmupContext context,
+                IProgress<float> progress,
+                CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult(SceneReadinessResult.Ready());
+            }
+
+            public Task<SceneReadinessResult> ValidateAsync(
+                SceneInitializationContext context,
+                CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult(SceneReadinessResult.Ready());
+            }
+        }
+
+        private sealed class FailingReadiness : ISceneReadinessService
+        {
+            private readonly string _systemName;
+            private readonly string _message;
+
+            public FailingReadiness(string systemName, string message)
+            {
+                _systemName = systemName;
+                _message = message;
+            }
+
+            public Task<SceneReadinessResult> InitializeAsync(
+                SceneInitializationContext context,
+                IProgress<float> progress,
+                CancellationToken cancellationToken = default)
+            {
+                return Task.FromResult(SceneReadinessResult.Failed(new SceneInitializationError(_systemName, _message)));
             }
 
             public Task<SceneReadinessResult> WarmUpAsync(

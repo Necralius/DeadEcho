@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Project.Core.Services;
@@ -16,6 +17,7 @@ namespace Project.Infrastructure.SceneTransitions
         private readonly IUnitySceneOperations _sceneOperations;
         private readonly SceneTransitionProgressWeights _weights;
         private readonly SemaphoreSlim _transitionLock = new SemaphoreSlim(1, 1);
+        private SceneTransitionRequest _lastFailedRetryRequest;
         private float _lastProgress;
 
         public SceneTransitionService(
@@ -48,42 +50,64 @@ namespace Project.Infrastructure.SceneTransitions
             {
                 return SceneTransitionResult.Failed(
                     request.TargetSceneName,
-                    new SceneTransitionError("Transition Busy", "A scene transition is already running."));
+                    new SceneTransitionError(
+                        "Transição em andamento",
+                        "Aguarde o carregamento atual terminar.",
+                        code: SceneTransitionErrorCode.Unknown,
+                        policy: SceneTransitionErrorPolicy.Recoverable));
             }
 
-            IsTransitioning = true;
-            _lastProgress = 0f;
+            string transitionId = Guid.NewGuid().ToString("N");
             string previousSceneName = _sceneOperations.ActiveSceneName;
             bool loadingShown = false;
+            bool targetActivated = false;
+            bool previousUnloaded = false;
+            _lastProgress = 0f;
+            IsTransitioning = true;
+
+            float transitionStartedAt = Time.realtimeSinceStartup;
+            float loadingShownAt = 0f;
+            var diagnostics = new SceneTransitionDiagnostics
+            {
+                TransitionId = transitionId,
+                PreviousSceneName = previousSceneName,
+                TargetSceneName = request.TargetSceneName
+            };
 
             try
             {
-                if (!_sceneOperations.CanLoadScene(request.TargetSceneName))
-                {
-                    return SceneTransitionResult.Failed(
-                        request.TargetSceneName,
-                        new SceneTransitionError("Scene Not Found", $"Scene '{request.TargetSceneName}' is not enabled in Build Settings."));
-                }
-
                 _gameplayGate.Block();
-                if (request.Payload != null)
-                    _payloadStore.Store(request.Payload);
-                else
-                    _payloadStore.Clear();
+                StorePayload(request);
 
-                float startedAt = Time.realtimeSinceStartup;
+                Debug.Log($"[SceneTransition:{transitionId}] Start previous='{previousSceneName}' target='{request.TargetSceneName}' status={CurrentStatus}.");
 
                 await SetStatusAsync(SceneTransitionStatus.OpeningLoadingScreen, 0f, "Preparando...", cancellationToken);
                 await _loadingView.ShowAsync(cancellationToken);
                 loadingShown = true;
+                loadingShownAt = Time.realtimeSinceStartup;
                 SetProgress(_weights.OpeningEnd);
+
+                if (!_sceneOperations.CanLoadScene(request.TargetSceneName))
+                {
+                    throw new SceneTransitionException(
+                        SceneTransitionErrorCode.SceneNotFound,
+                        SceneTransitionErrorPolicy.Fatal,
+                        $"Scene '{request.TargetSceneName}' is not enabled in Build Settings.");
+                }
 
                 cancellationToken.ThrowIfCancellationRequested();
                 await SetStatusAsync(SceneTransitionStatus.Preparing, _weights.OpeningEnd, "Preparando...", cancellationToken);
 
+                float sceneLoadStartedAt = Time.realtimeSinceStartup;
                 ISceneLoadOperation operation = _sceneOperations.LoadSceneAsync(request.TargetSceneName, LoadSceneMode.Additive);
                 if (operation == null)
-                    throw new InvalidOperationException($"Unity did not create a load operation for scene '{request.TargetSceneName}'.");
+                {
+                    throw new SceneTransitionException(
+                        SceneTransitionErrorCode.LoadingStartFailed,
+                        SceneTransitionErrorPolicy.Retryable,
+                        $"Unity did not create a load operation for scene '{request.TargetSceneName}'.",
+                        canRetry: true);
+                }
 
                 operation.AllowSceneActivation = false;
                 await SetStatusAsync(SceneTransitionStatus.LoadingScene, _weights.OpeningEnd, "Carregando cenário...", cancellationToken);
@@ -96,28 +120,28 @@ namespace Project.Infrastructure.SceneTransitions
                     await Task.Yield();
                 }
 
+                diagnostics.SceneLoadDuration = Time.realtimeSinceStartup - sceneLoadStartedAt;
                 await SetStatusAsync(SceneTransitionStatus.WaitingForActivation, _weights.LoadingEnd, "Ativando cena...", cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
 
+                float activationStartedAt = Time.realtimeSinceStartup;
                 CurrentStatus = SceneTransitionStatus.ActivatingScene;
                 _loadingView.SetStatus("Ativando cena...");
                 operation.AllowSceneActivation = true;
                 while (!operation.IsDone)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     SetProgress(_weights.ActivationEnd);
                     await Task.Yield();
                 }
 
+                targetActivated = true;
+                diagnostics.ActivationDuration = Time.realtimeSinceStartup - activationStartedAt;
+
                 await SetStatusAsync(SceneTransitionStatus.ResolvingSceneScope, _weights.ActivationEnd, "Inicializando sistemas...", cancellationToken);
                 Scene loadedScene = _sceneOperations.GetScene(request.TargetSceneName);
-                var initializationContext = new SceneInitializationContext(
-                    loadedScene,
-                    _payloadStore.Peek(),
-                    request);
-                var warmupContext = new SceneWarmupContext(
-                    loadedScene,
-                    _payloadStore.Peek(),
-                    request);
+                var initializationContext = new SceneInitializationContext(loadedScene, _payloadStore.Peek(), request);
+                var warmupContext = new SceneWarmupContext(loadedScene, _payloadStore.Peek(), request);
 
                 using (CancellationTokenSource initializationTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
                 {
@@ -125,19 +149,23 @@ namespace Project.Infrastructure.SceneTransitions
 
                     try
                     {
+                        float initializationStartedAt = Time.realtimeSinceStartup;
                         await SetStatusAsync(SceneTransitionStatus.InitializingScene, _weights.ActivationEnd, "Inicializando sistemas...", initializationTimeout.Token);
                         SceneReadinessResult initializationResult = await _readinessService.InitializeAsync(
                             initializationContext,
                             new Progress<float>(value => SetProgress(Mathf.Lerp(_weights.ActivationEnd, _weights.InitializationEnd, value))),
                             initializationTimeout.Token);
                         EnsureReady(initializationResult, "Scene initialization failed.");
+                        diagnostics.InitializationDuration = Time.realtimeSinceStartup - initializationStartedAt;
 
+                        float warmupStartedAt = Time.realtimeSinceStartup;
                         await SetStatusAsync(SceneTransitionStatus.WarmingUpScene, _weights.InitializationEnd, "Preparando o mundo...", initializationTimeout.Token);
                         SceneReadinessResult warmupResult = await _readinessService.WarmUpAsync(
                             warmupContext,
                             new Progress<float>(value => SetProgress(Mathf.Lerp(_weights.InitializationEnd, _weights.WarmupEnd, value))),
                             initializationTimeout.Token);
                         EnsureReady(warmupResult, "Scene warmup failed.");
+                        diagnostics.WarmupDuration = Time.realtimeSinceStartup - warmupStartedAt;
 
                         _payloadStore.Consume();
 
@@ -153,15 +181,24 @@ namespace Project.Infrastructure.SceneTransitions
                     }
                     catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                     {
-                        throw new TimeoutException(
-                            $"Scene initialization timed out after {request.InitializationTimeoutSeconds:0.##} seconds.");
+                        throw new SceneTransitionException(
+                            SceneTransitionErrorCode.Timeout,
+                            SceneTransitionErrorPolicy.Retryable,
+                            $"Scene initialization timed out after {request.InitializationTimeoutSeconds:0.##} seconds.",
+                            canRetry: true);
                     }
                 }
 
                 if (request.SetAsActiveScene)
                 {
                     await SetStatusAsync(SceneTransitionStatus.SwitchingActiveScene, _weights.WarmupEnd, "Finalizando...", cancellationToken);
-                    _sceneOperations.SetActiveScene(request.TargetSceneName);
+                    if (!_sceneOperations.SetActiveScene(request.TargetSceneName))
+                    {
+                        throw new SceneTransitionException(
+                            SceneTransitionErrorCode.SetActiveSceneFailed,
+                            SceneTransitionErrorPolicy.Recoverable,
+                            $"Unity failed to set scene '{request.TargetSceneName}' as active.");
+                    }
                 }
 
                 if (request.Mode == SceneTransitionMode.ReplaceCurrent &&
@@ -170,32 +207,58 @@ namespace Project.Infrastructure.SceneTransitions
                     previousSceneName != request.TargetSceneName)
                 {
                     await SetStatusAsync(SceneTransitionStatus.UnloadingPreviousScene, 0.99f, "Finalizando...", cancellationToken);
-                    await _sceneOperations.UnloadSceneAsync(previousSceneName);
+                    float unloadStartedAt = Time.realtimeSinceStartup;
+                    try
+                    {
+                        await _sceneOperations.UnloadSceneAsync(previousSceneName);
+                        previousUnloaded = true;
+                        diagnostics.UnloadDuration = Time.realtimeSinceStartup - unloadStartedAt;
+                    }
+                    catch (Exception exception)
+                    {
+                        throw new SceneTransitionException(
+                            SceneTransitionErrorCode.UnloadFailed,
+                            SceneTransitionErrorPolicy.Recoverable,
+                            $"Unity failed to unload previous scene '{previousSceneName}'.",
+                            exception);
+                    }
                 }
 
-                await WaitForMinimumDurationAsync(startedAt, request.MinimumLoadingScreenDuration, cancellationToken);
+                await WaitForMinimumDurationAsync(transitionStartedAt, request.MinimumLoadingScreenDuration, cancellationToken);
                 SetProgress(1f);
                 CurrentStatus = SceneTransitionStatus.ClosingLoadingScreen;
                 await _loadingView.HideAsync(cancellationToken);
                 loadingShown = false;
 
                 CurrentStatus = SceneTransitionStatus.Completed;
-                return SceneTransitionResult.Completed(request.TargetSceneName);
+                diagnostics.FinalStatus = CurrentStatus;
+                diagnostics.LoadingScreenOpenDuration = Time.realtimeSinceStartup - loadingShownAt;
+                diagnostics.TotalTransitionDuration = Time.realtimeSinceStartup - transitionStartedAt;
+                Debug.Log(BuildDiagnosticsLog(diagnostics));
+                return SceneTransitionResult.Completed(request.TargetSceneName, diagnostics);
             }
             catch (OperationCanceledException)
             {
                 CurrentStatus = SceneTransitionStatus.Cancelled;
+                await CleanupFailedTargetAsync(request, previousSceneName, targetActivated, previousUnloaded);
+                SceneTransitionResult result = SceneTransitionResult.Cancelled(request.TargetSceneName, CompleteDiagnostics(diagnostics, SceneTransitionStatus.Cancelled, loadingShown, loadingShownAt, transitionStartedAt));
                 if (loadingShown)
-                    await HideWithoutThrowAsync();
-                return SceneTransitionResult.Cancelled(request.TargetSceneName);
+                    _loadingView.ShowError(result.Error, () => RetryAsync(request), () => ReturnToMainMenuAsync(request));
+                Debug.Log(BuildDiagnosticsLog(result.Diagnostics));
+                return result;
             }
             catch (Exception exception)
             {
                 CurrentStatus = SceneTransitionStatus.Failed;
-                var error = new SceneTransitionError("Loading Failed", "Não foi possível carregar a cena.", exception);
-                _loadingView.ShowError(error);
+                await CleanupFailedTargetAsync(request, previousSceneName, targetActivated, previousUnloaded);
+                SceneTransitionError error = CreateError(exception, !previousUnloaded);
+                _lastFailedRetryRequest = error.CanRetry ? CloneRequest(request) : null;
+                diagnostics = CompleteDiagnostics(diagnostics, SceneTransitionStatus.Failed, loadingShown, loadingShownAt, transitionStartedAt);
+                if (loadingShown)
+                    _loadingView.ShowError(error, error.CanRetry ? (() => RetryAsync(request)) : null, () => ReturnToMainMenuAsync(request));
                 Debug.LogException(exception);
-                return SceneTransitionResult.Failed(request.TargetSceneName, error);
+                Debug.Log(BuildDiagnosticsLog(diagnostics));
+                return SceneTransitionResult.Failed(request.TargetSceneName, error, diagnostics);
             }
             finally
             {
@@ -208,6 +271,14 @@ namespace Project.Infrastructure.SceneTransitions
                     CurrentStatus = SceneTransitionStatus.Idle;
                 _transitionLock.Release();
             }
+        }
+
+        private void StorePayload(SceneTransitionRequest request)
+        {
+            if (request.Payload != null)
+                _payloadStore.Store(request.Payload);
+            else
+                _payloadStore.Clear();
         }
 
         private async Task SetStatusAsync(
@@ -235,12 +306,200 @@ namespace Project.Infrastructure.SceneTransitions
                 return;
 
             if (result != null && result.Errors.Count > 0)
-                throw new InvalidOperationException(result.Errors[0].Message, result.Errors[0].Exception);
+            {
+                SceneTransitionErrorCode code = ClassifyReadinessError(result.Errors[0]);
+                throw new SceneTransitionException(
+                    code,
+                    code == SceneTransitionErrorCode.CorruptedSave || code == SceneTransitionErrorCode.InvalidSave
+                        ? SceneTransitionErrorPolicy.Recoverable
+                        : SceneTransitionErrorPolicy.Retryable,
+                    result.Errors[0].Message,
+                    result.Errors[0].Exception,
+                    code != SceneTransitionErrorCode.CorruptedSave && code != SceneTransitionErrorCode.InvalidSave);
+            }
 
             if (result != null && result.PendingSystems.Count > 0)
-                throw new InvalidOperationException($"{fallbackMessage} Pending: {string.Join(", ", result.PendingSystems)}");
+            {
+                SceneTransitionErrorCode code = result.PendingSystems.Contains("SceneLifetimeScope")
+                    ? SceneTransitionErrorCode.LifetimeScopeMissing
+                    : SceneTransitionErrorCode.CriticalInitializerMissing;
+                throw new SceneTransitionException(
+                    code,
+                    SceneTransitionErrorPolicy.Fatal,
+                    $"{fallbackMessage} Pending: {string.Join(", ", result.PendingSystems)}");
+            }
 
-            throw new InvalidOperationException(fallbackMessage);
+            throw new SceneTransitionException(
+                SceneTransitionErrorCode.InitializationFailed,
+                SceneTransitionErrorPolicy.Retryable,
+                fallbackMessage,
+                canRetry: true);
+        }
+
+        private async Task RetryAsync(SceneTransitionRequest request)
+        {
+            SceneTransitionRequest retryRequest = _lastFailedRetryRequest ?? CloneRequest(request);
+            _lastFailedRetryRequest = null;
+            await TransitionAsync(retryRequest, CancellationToken.None);
+        }
+
+        private async Task ReturnToMainMenuAsync(SceneTransitionRequest failedRequest)
+        {
+            _payloadStore.Clear();
+            if (string.IsNullOrWhiteSpace(failedRequest.MainMenuSceneName) ||
+                failedRequest.TargetSceneName == failedRequest.MainMenuSceneName)
+            {
+                await HideWithoutThrowAsync();
+                return;
+            }
+
+            await TransitionAsync(
+                new SceneTransitionRequest(failedRequest.MainMenuSceneName)
+                {
+                    Payload = new ScenePayload("ReturnToMainMenu"),
+                    MinimumLoadingScreenDuration = 0f,
+                    RequireSceneLifetimeScope = false
+                },
+                CancellationToken.None);
+        }
+
+        private async Task CleanupFailedTargetAsync(
+            SceneTransitionRequest request,
+            string previousSceneName,
+            bool targetActivated,
+            bool previousUnloaded)
+        {
+            if (!targetActivated || previousUnloaded || request.TargetSceneName == previousSceneName)
+                return;
+
+            try
+            {
+                await _sceneOperations.UnloadSceneAsync(request.TargetSceneName);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
+        }
+
+        private static SceneTransitionError CreateError(Exception exception, bool canRetrySafely)
+        {
+            if (exception is SceneTransitionException sceneException)
+            {
+                return new SceneTransitionError(
+                    PlayerTitle(sceneException.Code),
+                    PlayerMessage(sceneException.Code),
+                    sceneException,
+                    sceneException.Code,
+                    sceneException.Policy,
+                    sceneException.CanRetry && canRetrySafely,
+                    sceneException.Policy != SceneTransitionErrorPolicy.Fatal);
+            }
+
+            return new SceneTransitionError(
+                "Falha no carregamento",
+                "Não foi possível carregar a cena. Volte ao menu e tente novamente.",
+                exception,
+                SceneTransitionErrorCode.Unknown,
+                SceneTransitionErrorPolicy.Retryable,
+                canRetrySafely,
+                true);
+        }
+
+        private static SceneTransitionRequest CloneRequest(SceneTransitionRequest request)
+        {
+            return new SceneTransitionRequest(request.TargetSceneName)
+            {
+                Mode = request.Mode,
+                SetAsActiveScene = request.SetAsActiveScene,
+                UnloadPreviousScene = request.UnloadPreviousScene,
+                MinimumLoadingScreenDuration = request.MinimumLoadingScreenDuration,
+                InitializationTimeoutSeconds = request.InitializationTimeoutSeconds,
+                StabilizationFrameCount = request.StabilizationFrameCount,
+                RequireSceneLifetimeScope = request.RequireSceneLifetimeScope,
+                MainMenuSceneName = request.MainMenuSceneName,
+                Payload = request.Payload
+            };
+        }
+
+        private static SceneTransitionErrorCode ClassifyReadinessError(SceneInitializationError error)
+        {
+            string text = $"{error.SystemName} {error.Message}".ToLowerInvariant();
+            if (text.Contains("corrupt"))
+                return SceneTransitionErrorCode.CorruptedSave;
+            if (text.Contains("save") && (text.Contains("invalid") || text.Contains("invalido") || text.Contains("inválido")))
+                return SceneTransitionErrorCode.InvalidSave;
+            if (text.Contains("addressable") || text.Contains("asset"))
+                return SceneTransitionErrorCode.AddressablesFailed;
+
+            return SceneTransitionErrorCode.InitializationFailed;
+        }
+
+        private static string PlayerTitle(SceneTransitionErrorCode code)
+        {
+            switch (code)
+            {
+                case SceneTransitionErrorCode.SceneNotFound:
+                case SceneTransitionErrorCode.LifetimeScopeMissing:
+                case SceneTransitionErrorCode.CriticalInitializerMissing:
+                    return "Erro de configuração";
+                case SceneTransitionErrorCode.Timeout:
+                    return "Carregamento demorou demais";
+                case SceneTransitionErrorCode.InvalidSave:
+                case SceneTransitionErrorCode.CorruptedSave:
+                    return "Save indisponível";
+                default:
+                    return "Falha no carregamento";
+            }
+        }
+
+        private static string PlayerMessage(SceneTransitionErrorCode code)
+        {
+            switch (code)
+            {
+                case SceneTransitionErrorCode.SceneNotFound:
+                    return "A cena solicitada não está disponível nesta versão.";
+                case SceneTransitionErrorCode.LifetimeScopeMissing:
+                    return "A cena carregada não possui os serviços necessários.";
+                case SceneTransitionErrorCode.CriticalInitializerMissing:
+                    return "A cena carregada não possui inicializadores necessários.";
+                case SceneTransitionErrorCode.Timeout:
+                    return "A cena não ficou pronta a tempo. Você pode tentar novamente.";
+                case SceneTransitionErrorCode.InvalidSave:
+                    return "O save selecionado não pode ser carregado.";
+                case SceneTransitionErrorCode.CorruptedSave:
+                    return "O save selecionado parece estar corrompido.";
+                case SceneTransitionErrorCode.UnloadFailed:
+                    return "A nova cena carregou, mas houve falha ao limpar a cena anterior.";
+                case SceneTransitionErrorCode.SetActiveSceneFailed:
+                    return "A cena carregou, mas não pôde ser ativada.";
+                default:
+                    return "Não foi possível carregar a cena. Volte ao menu e tente novamente.";
+            }
+        }
+
+        private static SceneTransitionDiagnostics CompleteDiagnostics(
+            SceneTransitionDiagnostics diagnostics,
+            SceneTransitionStatus status,
+            bool loadingShown,
+            float loadingShownAt,
+            float transitionStartedAt)
+        {
+            diagnostics.FinalStatus = status;
+            diagnostics.LoadingScreenOpenDuration = loadingShown ? Time.realtimeSinceStartup - loadingShownAt : 0f;
+            diagnostics.TotalTransitionDuration = Time.realtimeSinceStartup - transitionStartedAt;
+            return diagnostics;
+        }
+
+        private static string BuildDiagnosticsLog(SceneTransitionDiagnostics diagnostics)
+        {
+            return
+                $"[SceneTransition:{diagnostics.TransitionId}] Result={diagnostics.FinalStatus} " +
+                $"previous='{diagnostics.PreviousSceneName}' target='{diagnostics.TargetSceneName}' " +
+                $"load={diagnostics.SceneLoadDuration:0.000}s activation={diagnostics.ActivationDuration:0.000}s " +
+                $"initialization={diagnostics.InitializationDuration:0.000}s warmup={diagnostics.WarmupDuration:0.000}s " +
+                $"unload={diagnostics.UnloadDuration:0.000}s loadingOpen={diagnostics.LoadingScreenOpenDuration:0.000}s " +
+                $"total={diagnostics.TotalTransitionDuration:0.000}s";
         }
 
         private static async Task WaitForMinimumDurationAsync(
@@ -268,6 +527,26 @@ namespace Project.Infrastructure.SceneTransitions
             {
                 Debug.LogException(exception);
             }
+        }
+
+        private sealed class SceneTransitionException : Exception
+        {
+            public SceneTransitionException(
+                SceneTransitionErrorCode code,
+                SceneTransitionErrorPolicy policy,
+                string message,
+                Exception innerException = null,
+                bool canRetry = false)
+                : base(message, innerException)
+            {
+                Code = code;
+                Policy = policy;
+                CanRetry = canRetry;
+            }
+
+            public SceneTransitionErrorCode Code { get; }
+            public SceneTransitionErrorPolicy Policy { get; }
+            public bool CanRetry { get; }
         }
     }
 }
