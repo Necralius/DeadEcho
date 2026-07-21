@@ -14,11 +14,12 @@ There is an existing `ISceneLoader` contract and `UnitySceneLoader` implementati
 
 ## Build Settings
 
-`ProjectSettings/EditorBuildSettings.asset` currently contains only:
+`ProjectSettings/EditorBuildSettings.asset` now contains:
 
-- `Assets/OutdoorsScene.unity`, disabled.
+- `Assets/_Project/Scenes/Menu.unity`, enabled.
+- `Assets/_Project/Scenes/game_01_v0_1.unity`, enabled.
 
-`Assets/_Project/Scenes/Menu.unity` exists but is not registered in Build Settings. Any production transition service that validates scenes by Build Settings will reject both the menu scene and gameplay scenes until they are added and enabled.
+`Assets/_Project/Scenes/game_01_v0_1.unity` is the first gameplay scene target used by the temporary New Game and Load Game adapters.
 
 ## Existing Scene and LifetimeScope Objects
 
@@ -136,7 +137,7 @@ Current project code does not yet expose gameplay systems that need transition w
 
 ## Risks
 
-- Build Settings must be corrected in Unity before real scene transitions can succeed.
+- Build Settings must stay aligned with transition targets before real scene transitions can succeed.
 - Target gameplay scenes need `SceneLifetimeScope` and initializer registrations before warmup can do useful work.
 - Legacy systems with `Start`, `Awake`, or `OnEnable` gameplay side effects may start before the transition releases gameplay unless they check the gameplay gate or are moved behind initializers.
 - Scene names in placeholder services must be replaced with configured constants or ScriptableObject configuration before production.

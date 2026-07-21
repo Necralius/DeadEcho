@@ -8,7 +8,7 @@ namespace Project.Infrastructure.SaveGames
 {
     public sealed class TemporaryLoadGameService : ILoadGameService
     {
-        private const string TemporaryGameplaySceneName = "OutdoorsScene";
+        private const string TemporaryGameplaySceneName = "game_01_v0_1";
         private readonly ISceneTransitionService _sceneTransitionService;
 
         public TemporaryLoadGameService(ISceneTransitionService sceneTransitionService)
@@ -42,7 +42,7 @@ namespace Project.Infrastructure.SaveGames
 
     public sealed class TemporaryNewGameService : INewGameService
     {
-        private const string TemporaryGameplaySceneName = "OutdoorsScene";
+        private const string TemporaryGameplaySceneName = "game_01_v0_1";
         private readonly ISceneTransitionService _sceneTransitionService;
 
         public TemporaryNewGameService(ISceneTransitionService sceneTransitionService)
