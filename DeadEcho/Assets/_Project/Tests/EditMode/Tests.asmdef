@@ -1,14 +1,16 @@
 {
-    "name": "Project.Tests.EditMode",
-    "rootNamespace": "Project.Tests.EditMode",
+    "name": "Tests",
+    "rootNamespace": "",
     "references": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
         "Project.Core",
         "Project.UI",
-        "Project.Infrastructure",
-        "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "Project.Infrastructure"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
